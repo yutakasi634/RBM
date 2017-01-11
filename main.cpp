@@ -56,7 +56,7 @@ void RBM<T>::setVisiblePotentials(std::vector<T>& values){
 }
 
 template<typename T>
-void RBM<T>::setConnectionMatrix(std::vector<std::vector<double>>& weightMatrix){
+void RBM<T>::setConnectionMatrix(std::vector<std::vector<T>>& weightMatrix){
   connectionMatrix = weightMatrix;
 }
 
