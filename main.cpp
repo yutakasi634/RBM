@@ -24,6 +24,15 @@ int main(){
     teacher.emplace_back(minibatch);
   }
 
+  //ミニバッチごとのpotentialの平均値を計算し、保持しておく
+  std::vector<std::vector<std::vector<double> > > VHmeans;
+  std::vector<std::vector<double> > Vmeans,Hmeans;
+  for(std::size_t batchNum = 0; batchNum < dataNum/miniBatchSampleNum; ++batchNum){
+    VHmeans = RBM::batchDataMeanCalculateVH(teacher.at(batchNum));
+    Vmeans = RBM::batchDataMeanCalculateV(teacher.at(batchNum));
+    Hmeans = RBM::batchDataMeanCalculateH(teacher.at(batchNum));
+  }
+  
   //ミニバッチのサンプル数だけRBMを用意する
   RBM::RBMstaticGenerate(0);
   std::vector<std::shared_ptr<RBM<BBRBMTypeTraits>>> RBMptrs;
@@ -31,7 +40,14 @@ int main(){
     std::shared_ptr<RBM<BBRBMTypeTraits>> RBMptr(new RBM<BBRBMTypeTraits>(teacher.at(randMiniBatchNum(mt)).at(i),mt));
     RBMptrs.emplace_back(RBMptr);
   }
-  
+
+  //connectionMatrixを更新する
+  for(std::size_t rbmNum = 0; rbmNum < miniBatchSampleNum; ++rbmNum){
+    RBMptrs.at(rbmNum)->timeEvolution();
+    RBM::batchDataMeanCalculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+    RBM::batchDataMeanCalculateV((RBMptrs.at(rbmNum)->getPotential()).at(0));
+    RBM::batchDataMeanCalculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+  }
   
   
   return 0;

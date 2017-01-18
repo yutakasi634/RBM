@@ -15,14 +15,15 @@ public:
   static std::vector<std::vector<T_traits::biasType>> bias;
   static std::mt19937 randomNumberGenerator;
   RBM(std::vector<T_traits::potentialType> initialValues,int randomSeed = 0);
+  std::vector<std::vector<T_traits::potentialType> > getPotential();
   void setVisiblePotentials(std::vector<T_traits::potentialType>& values);
   void setBias(std::vector<std::vector<T_traits::biasType>>& values);
   void setConnectionMatrix(std::vector<std::vector<T_traits::connectionType>>& weightMatrix);
   double activationFunction(std::size_t layerNum, std::size_t nodeNum);
-  static double activationFunction(std::size_t layerNum, std::size_t nodeNum, std::vector<T_traits::potentialType> nodePotentials);
   T_traits::potentialType activate(std::size_t layerNum, std::size_t nodeNum);
   void timeEvolution();
-  static std::vector<std::vector<double>>& batchDataMeanCalculateVH(std::vector<BBRBMTypeTraits::potentialType>& miniBatch);
+  static double activationFunction(std::size_t layerNum, std::size_t nodeNum, std::vector<T_traits::potentialType> nodePotentials);
+  static std::vector<std::vector<double> >& batchDataMeanCalculateVH(std::vector<BBRBMTypeTraits::potentialType>& miniBatch);
   static std::vector<double>& batchDataMeanCalculateV(std::vector<BBRBMTypeTraits::potentialType>& minibatch);
   static std::vector<double>& batchDataMeanCalculateH(std::vector<BBRBMTypeTraits::potentialType>& minibatch);
   static void RBMstaticGenerate(int randomSeed);
@@ -34,6 +35,11 @@ RBM<T_traits>::RBM(std::vector<T_traits::potentialType>& initialValues){
   potential.push_back(initialValue);
   std::vector<T_traits::potentialType> hiddenLayer(totalNodeNum);
   potential.emplace_back(hiddenLayer);
+}
+
+template<typename T_traits>
+std::vector<std::vector<T_traits::potentialType> > RBM<T_traits>::getPotential(){
+  return potential;
 }
 
 template<typename T_traits>
