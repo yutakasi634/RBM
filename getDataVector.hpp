@@ -2,16 +2,20 @@
 #define GETDATAVECTOR
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <string>
+#include <sstream>
 
 template<typename potentialType>
-vector<vector<potentialType>>& getDataVector(std::string filename){
+std::vector<std::vector<potentialType>> getDataVector(std::string filename){
   std::ifstream reading_file;
   reading_file.open(filename,std::ios::in);
   std::string reading_line_buffer;
   std::cout << "reading" << filename << "…" << std::endl;
-  T num;
+  potentialType num;
   char comma;
 
+  std::vector<std::vector<potentialType>> data;
   while(!reading_file.eof()){
     std::vector<potentialType> temp_data;
     getline(reading_file,reading_line_buffer);
@@ -20,7 +24,6 @@ vector<vector<potentialType>>& getDataVector(std::string filename){
       is >> num >> comma;
       temp_data.push_back(num);
     }
-    std::vector<vector<potentialType>> data;
     data.push_back(temp_data);
   }
   return data;
