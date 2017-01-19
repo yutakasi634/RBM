@@ -68,7 +68,7 @@ int main(){
 
   std::size_t miniBatchNum = randMiniBatchNum(mt);
   deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
-  deltaBias = epsilon*(dataVmeans);
+  deltaBias = epsilon*(dataVmeans(miniBatchNum) - rbm);
 
   //  RBM<BBRBMTypeTraits>::setConnectionMatrix();
   //  RBM<BBRBMTypeTraits>::setBias();
