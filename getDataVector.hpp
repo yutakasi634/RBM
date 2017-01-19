@@ -25,6 +25,7 @@ std::vector<std::vector<potentialType>> getDataVector(std::string filename){
       temp_data.push_back(num);
     }
     data.push_back(temp_data);
+    reading_file.peek();
   }
   return data;
 }
