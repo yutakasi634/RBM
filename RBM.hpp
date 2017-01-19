@@ -1,59 +1,87 @@
 //オブジェクトを生成する前にrandomNumbeGenerate()を使用しておく
-#ifndef RBM
-#define RBM
+#ifndef SOTUKENRBM
+#define SOTUKENRBM
 #include <random>
 #include <cmath>
+#include "vectorWrapper.hpp"
 
 template<typename T_traits>
 class RBM{
+  typedef typename T_traits::potentialType potentialType;
+  typedef typename T_traits::connectionType connectionType;
+  typedef typename T_traits::biasType biasType;
 protected:
-  std::vector<std::vector<T_traits::potentialType>> potential;
+  matrix<potentialType> potential;
 public:
   static std::size_t totalNodeNum;
-  static std::vector<std::vector<T_traits::connectionType>> connectionMatrix;
+  static matrix<connectionType> connectionMatrix;
   //connectionMatrix[i][j]はvisible layerのi番目nodeとhidden layerのj番目の接続の重み
-  static std::vector<std::vector<T_traits::biasType>> bias;
+  static matrix<biasType> bias;
   static std::mt19937 randomNumberGenerator;
-  RBM(std::vector<T_traits::potentialType> initialValues,int randomSeed = 0);
-  std::vector<std::vector<T_traits::potentialType> > getPotential();
-  void setVisiblePotentials(std::vector<T_traits::potentialType>& values);
-  void setBias(std::vector<std::vector<T_traits::biasType>>& values);
-  void setConnectionMatrix(std::vector<std::vector<T_traits::connectionType>>& weightMatrix);
-  double activationFunction(std::size_t layerNum, std::size_t nodeNum);
-  T_traits::potentialType activate(std::size_t layerNum, std::size_t nodeNum);
-  void timeEvolution();
-  static double activationFunction(std::size_t layerNum, std::size_t nodeNum, std::vector<T_traits::potentialType> nodePotentials);
-  static std::vector<std::vector<double> >& batchDataMeanCalculateVH(std::vector<BBRBMTypeTraits::potentialType>& miniBatch);
-  static std::vector<double>& batchDataMeanCalculateV(std::vector<BBRBMTypeTraits::potentialType>& minibatch);
-  static std::vector<double>& batchDataMeanCalculateH(std::vector<BBRBMTypeTraits::potentialType>& minibatch);
+
+  RBM(vector<potentialType>& initialValues);
   static void RBMstaticGenerate(int randomSeed);
+  void timeEvolution();
+  const matrix<potentialType> getPotential();
+  void setVisiblePotentials(vector<potentialType>& values);
+  static void setBias(matrix<biasType>& values);
+  static void setConnectionMatrix(matrix<connectionType>& weightMatrix);
+  
+  double
+  activationFunction(std::size_t layerNum, std::size_t nodeNum);
+  
+  static
+  double
+  activationFunction(std::size_t layerNum, std::size_t nodeNum,
+		     const vector<potentialType>& nodePotentials);
+
+  potentialType activate(std::size_t layerNum, std::size_t nodeNum);
+  
+  static
+  vector<double>
+  calculateH(const vector<potentialType>& visibleLayer);
+
+  static
+  matrix<double>  
+  calculateVH(const vector<potentialType>& visibleLayer);
+  
+  static
+  matrix<double>
+  batchDataMeanCalculateVH(const matrix<potentialType>& miniBatch);
+  
+  static vector<double> batchDataMeanCalculateV(const matrix<potentialType>& minibatch);
+  
+  static
+  vector<double>
+  batchDataMeanCalculateH(const matrix<potentialType>& minibatch);
 };
 
 template<typename T_traits>
-RBM<T_traits>::RBM(std::vector<T_traits::potentialType>& initialValues){
-  totalNodeNum = initialValue.size();
-  potential.push_back(initialValue);
-  std::vector<T_traits::potentialType> hiddenLayer(totalNodeNum);
+RBM<T_traits>::RBM(vector<potentialType>& initialValues){
+  totalNodeNum = initialValues.size();
+  potential.push_back(initialValues);
+  vector<potentialType> hiddenLayer(totalNodeNum);
   potential.emplace_back(hiddenLayer);
 }
 
 template<typename T_traits>
-std::vector<std::vector<T_traits::potentialType> > RBM<T_traits>::getPotential(){
+const matrix<typename RBM<T_traits>::potentialType>
+RBM<T_traits>::getPotential(){
   return potential;
 }
 
 template<typename T_traits>
-void RBM<T_traits>::setVisiblePotentials(std::vector<T_traits::potentialType>& values){
+void RBM<T_traits>::setVisiblePotentials(vector<potentialType>& values){
   potential.at(0) = values;
 }
 
 template<typename T_traits>
-void RBM<T_traits>::setConnectionMatrix(std::vector<std::vector<T_traits::connectionType>>& weightMatrix){
+void RBM<T_traits>::setConnectionMatrix(matrix<connectionType>& weightMatrix){
   connectionMatrix = weightMatrix;
 }
 
 template<typename T_traits>
-double activationFunction(std::size_t layerNum, std::size_t nodeNum){
+double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum){
   std::size_t inputLayer = ++layerNum%2;
   double sum = 0.0;
   if(inputLayer == 0){  
@@ -70,7 +98,8 @@ double activationFunction(std::size_t layerNum, std::size_t nodeNum){
 }
 
 template<typename T_traits>
-double activationFunction(std::size_t layerNum, std::size_t nodeNum, std::vector<T_traits::potentialType> nodePotentials){
+double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum,
+			  const vector<potentialType>& nodePotentials){
   std::size_t inputLayer = ++layerNum%2;
   double sum = 0.0;
   if(inputLayer == 0){  
@@ -87,45 +116,67 @@ double activationFunction(std::size_t layerNum, std::size_t nodeNum, std::vector
 }
 
 template<typename T_traits>
-T_traits::potentialType activate(std::size_t layerNum, std::size_t nodeNum){
-  std::uniform_real_distribution rand(0.0,1.0);
+typename RBM<T_traits>::potentialType
+RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
+  std::uniform_real_distribution<double> rand(0.0,1.0);
   double possibility = activationFunction(layerNum,nodeNum);
-  T_traits::potentialType potential;
+  potentialType potential;
   if(rand(randomNumberGenerator) <= possibility)
     potential = 1;
   else
     potential = 0;
 
-  return potentialType;
+  return potential;
 }
 
 template<typename T_traits>
 void RBM<T_traits>::timeEvolution(){
-  for(std::size_t i = 0; i < potential.at(1).size(); ++i)
+  for(std::size_t i = 0; i < totalNodeNum; ++i)
     potential.at(1).at(i) = activationFunction(1,i);
-  for(std::size_t i = 0; i < potential.at(0).size(); ++i)
+  for(std::size_t i = 0; i < totalNodeNum; ++i)
     potential.at(0).at(i) = activationFunction(0,i);
 }
 
 template<typename T_traits>
-std::vector<std::vector<double>>& RBM<T_traits>::batchDataMeanCalculateVH(std::vector<std::vector<T_traits::potentialType>>& miniBatch){
-  std::vector<std::vector<double>> meanPotentialVH(miniBatch.at(0).size());
-  for(std::size_t visibleNodeNum = 0; visibleNodeNum < meanPotentialVH.size(); ++visibleNodeNum){
-    meanPotentialVH.at(visibleNodeNum).reserve(meanPotentialVH.size());
-    for(std::size_t hiddenNodeNum = 0; hiddenNodeNum < meanPotentialVH.size(); ++hiddenNodeNum){
-      double sum = 0;
-      for(std::size_t sampleNum = 0; sampleNum < miniBatch.size(); ++sampleNum)
-	sum += miniBatch.at(sampleNum).at(visibleNodeNum)*activationFunction(1,hiddenNodeNum,miniBatch).at(sampleNum);
-      meanPotentialVH.at(visibleNodeNum).at(hiddenNodeNum) = sum/miniBatch.size();
-    }
+vector<double>
+RBM<T_traits>::calculateH(const vector<potentialType>& visibleLayer){
+  vector<double> potentialH;
+  potentialH.reserve(totalNodeNum);
+  for(std::size_t nodeNum; nodeNum < totalNodeNum; ++nodeNum)
+    potentialH.at(nodeNum) = activationFunction(0,nodeNum,visibleLayer);
+  return potentialH;
+}
+
+template<typename T_traits>
+matrix<double>
+RBM<T_traits>::calculateVH(const vector<potentialType>& visibleLayer){
+  vector<double> hiddenLayer = calculateH(visibleLayer);
+  matrix<double> potentialVH(totalNodeNum);
+  for(std::size_t visibleNodeNum = 0; visibleNodeNum < totalNodeNum; ++visibleNodeNum){
+    potentialVH.at(visibleNodeNum).reserve(totalNodeNum);
+    for(std::size_t hiddenNodeNum = 0; hiddenNodeNum < totalNodeNum; ++ hiddenNodeNum)
+      potentialVH.at(visibleNodeNum).push_back(visibleLayer.at(visibleNodeNum)*hiddenLayer.at(hiddenNodeNum));
   }
+  return potentialVH;
+}
+
+template<typename T_traits>
+matrix<double>
+RBM<T_traits>::batchDataMeanCalculateVH(const matrix<potentialType>& miniBatch){
+  matrix<double> meanPotentialVH(totalNodeNum);
+  for(std::size_t visibleNodeNum = 0; visibleNodeNum < totalNodeNum; ++visibleNodeNum)
+    meanPotentialVH.at(visibleNodeNum).resize(totalNodeNum,0);
+  for(std::size_t sampleNum = 0; sampleNum < miniBatch.size(); ++sampleNum)
+    meanPotentialVH = meanPotentialVH + calculateVH(miniBatch.at(sampleNum));
+  meanPotentialVH = meanPotentialVH / (double)miniBatch.size();
   return meanPotentialVH;
 }
 
 template<typename T_traits>
-std::vector<double>& RBM<T_traits>::batchDataMeanCalculateV(std::vector<std::vector<T_traits>>& miniBatch){
-  std::vector<double> meanPotentialV(miniBatch.at(0).size());
-  for(std::size_t nodeNum; nodeNum < miniBatch.at(0).size(); ++nodeNum){
+vector<double>
+RBM<T_traits>::batchDataMeanCalculateV(const matrix<potentialType>& miniBatch){
+  vector<double> meanPotentialV(totalNodeNum);
+  for(std::size_t nodeNum; nodeNum < totalNodeNum; ++nodeNum){
     double sum;
     for(std::size_t sampleNum; sampleNum < miniBatch.size(); ++sampleNum)
       sum += miniBatch.at(sampleNum).at(nodeNum);
@@ -135,14 +186,12 @@ std::vector<double>& RBM<T_traits>::batchDataMeanCalculateV(std::vector<std::vec
 }
 
 template<typename T_traits>
-std::vector<double>& RBM<T_traits>::batchDataMeanCalculateH(std::vector<std::vector<T_traits>> miniBatch){
-  std::vector<double> meanPotentialH(miniBatch.at(0).size());
-  for(std::size_t nodeNum; nodeNum < miniBatch.at(0).size(); ++nodeNum){
-    double sum;
+vector<double>
+RBM<T_traits>::batchDataMeanCalculateH(const matrix<potentialType>& miniBatch){
+  vector<double> meanPotentialH(totalNodeNum,0);
     for(std::size_t sampleNum; sampleNum < miniBatch.size(); ++sampleNum)
-      sum += activationFunction(1,nodeNum,miniBatch.at(sampleNum));
-    meanPotentialH.at(nodeNum) = sum/miniBatch.size();
-  }
+      meanPotentialH = meanPotentialH + calculateH(miniBatch.at(sampleNum));
+    meanPotentialH = meanPotentialH / (double)miniBatch.size();
   return meanPotentialH;
 }
 
@@ -156,5 +205,17 @@ void RBM<T_traits>::RBMstaticGenerate(int randomSeed){
   for(std::size_t i = 0; i < totalNodeNum; ++i)
     connectionMatrix.at(i).resize(totalNodeNum,1);
 }
+
+template<typename T_traits>
+std::size_t RBM<T_traits>::totalNodeNum = 0;
+
+template<typename T_traits>
+vector<vector<typename T_traits::connectionType> > RBM<T_traits>::connectionMatrix;
+
+template<typename T_traits>
+vector<vector<typename T_traits::biasType>> RBM<T_traits>::bias;
+
+template<typename T_traits>
+std::mt19937 RBM<T_traits>::randomNumberGenerator;
 
 #endif
