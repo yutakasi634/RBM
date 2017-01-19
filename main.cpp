@@ -7,43 +7,49 @@
 int main(){
   const std::size_t dataNum = 1000;
   const std::size_t miniBatchSampleNum = 100;
+  const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
   
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
-  vector<vector<BBRBMTypeTraits::potentialType>>
+  matrix<BBRBMTypeTraits::potentialType>
     sample = getDataVector<BBRBMTypeTraits::potentialType>("data.csv");
 
   std::mt19937 mt(0);
   std::uniform_int_distribution<std::size_t> randSampleKind(0,sample.size() - 1);
-  std::uniform_int_distribution<std::size_t> randMiniBatchNum(0,dataNum/miniBatchSampleNum - 1);
+  std::uniform_int_distribution<std::size_t> randMiniBatchNum(0,totalBatchNum - 1);
 
   //教師データ集合を用意する
   tensor<BBRBMTypeTraits::potentialType> teacher;
-  teacher.reserve(dataNum/miniBatchSampleNum);
+  teacher.reserve(totalBatchNum);
   matrix<BBRBMTypeTraits::potentialType> miniBatch(miniBatchSampleNum);
-  for(std::size_t j = 0; j < dataNum/miniBatchSampleNum; ++j){
+  for(std::size_t j = 0; j < totalBatchNum; ++j){
     for(std::size_t i = 0; i < miniBatchSampleNum; ++i){
       miniBatch.at(i) = sample.at(randSampleKind(mt));
     }
     teacher.emplace_back(miniBatch);
   }
-
+  std::cout << "setup teacher-data compleated." << std::endl;
+  
   //ミニバッチごとのpotentialの平均値を計算し、保持しておく
-  tensor<double> dataVHmeans;
-  matrix<double> dataVmeans,dataHmeans;
-  for(std::size_t batchNum = 0; batchNum < dataNum/miniBatchSampleNum; ++batchNum){
+  RBM<BBRBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
+  tensor<double> dataVHmeans(totalBatchNum);
+  matrix<double> dataVmeans(totalBatchNum),dataHmeans(totalBatchNum);
+  for(std::size_t batchNum = 0; batchNum < totalBatchNum; ++batchNum){
     dataVHmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateVH(teacher.at(batchNum));
     dataVmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateV(teacher.at(batchNum));
     dataHmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateH(teacher.at(batchNum));
   }
+
+  std::cout << "calculate dataMeans compleated." << std::endl;
   
   //ミニバッチのサンプル数だけRBMを用意する
-  RBM<BBRBMTypeTraits>::RBMstaticGenerate(0);
   vector<std::shared_ptr<RBM<BBRBMTypeTraits>>> RBMptrs;
   for(std::size_t i = 0; i < miniBatchSampleNum; ++i){
     std::shared_ptr<RBM<BBRBMTypeTraits>> RBMptr(new RBM<BBRBMTypeTraits>(teacher.at(randMiniBatchNum(mt)).at(i)));
     RBMptrs.emplace_back(RBMptr);
   }
-
+  std::cout << "setup RBMs compleated." << std::endl;
+  
+  
   //connectionMatrixを更新する
   double epsilon;
   
@@ -55,23 +61,36 @@ int main(){
   rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
   rbmVsums = RBMptrs.at(0)->getPotential().at(0);
   rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
+  
   for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
     RBMptrs.at(rbmNum)->timeEvolution();
-    rbmVHmeans = rbmVHmeans + RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
-    rbmVsums = rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
-    rbmHmeans = rbmHmeans + RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+    rbmVHmeans =
+      rbmVHmeans +
+      RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+    rbmVsums =
+      rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
+    rbmHmeans =
+      rbmHmeans +
+      RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
   }
+
+  
+  
   vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
   rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
   rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
   rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
 
+
   std::size_t miniBatchNum = randMiniBatchNum(mt);
   deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
-  deltaBias = epsilon*(dataVmeans(miniBatchNum) - rbm);
+  deltaBias.push_back(epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans));
+  deltaBias.push_back(epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans));
 
-  //  RBM<BBRBMTypeTraits>::setConnectionMatrix();
-  //  RBM<BBRBMTypeTraits>::setBias();
-  
+  RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
+					    deltaConnection);//引数がconst rederenceじゃないと受け付けてくれない!!!
+  RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias);
+
+  std::cout << "all step compleated." << std::endl;/////////////////////      
   return 0;
 }
