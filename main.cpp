@@ -4,18 +4,27 @@
 #include "vectorWrapper.hpp"
 #include <memory>
 
-int main(){
+int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるようにする
+  if(argc < 3){
+    std::cout << "引数が足りません" << std::endl;
+    return 1;
+  }
   const std::size_t dataNum = 1000;
   const std::size_t miniBatchSampleNum = 100;
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
-  
+  const std::size_t totalLearningStep = std::atoi(argv[1]);
+  const std::size_t totalOutputStep = std::atoi(argv[2]);
+  const std::string inputFileName = "data.csv";
+  const std::string outputFileName = "answer.dat";
+    
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
   matrix<BBRBMTypeTraits::potentialType>
-    sample = getDataVector<BBRBMTypeTraits::potentialType>("data.csv");
+    sample = getDataVector<BBRBMTypeTraits::potentialType>(inputFileName);
 
   std::mt19937 mt(0);
   std::uniform_int_distribution<std::size_t> randSampleKind(0,sample.size() - 1);
   std::uniform_int_distribution<std::size_t> randMiniBatchNum(0,totalBatchNum - 1);
+  std::uniform_int_distribution<int> randbool(0,1);
 
   //教師データ集合を用意する
   tensor<BBRBMTypeTraits::potentialType> teacher;
@@ -50,47 +59,78 @@ int main(){
   std::cout << "setup RBMs compleated." << std::endl;
   
   
-  //connectionMatrixを更新する
-  double epsilon;
-  
+  //connectionMatrixを更新して学習する
+  double epsilon = 0.1;
   matrix<double> rbmVHmeans;
   matrix<double> deltaConnection,deltaBias;
   vector<int> rbmVsums;
   vector<double> rbmHmeans;
-  RBMptrs.at(0)->timeEvolution();
-  rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
-  rbmVsums = RBMptrs.at(0)->getPotential().at(0);
-  rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
+  deltaBias.resize(2);
   
-  for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
-    RBMptrs.at(rbmNum)->timeEvolution();
-    rbmVHmeans =
-      rbmVHmeans +
-      RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
-    rbmVsums =
-      rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
-    rbmHmeans =
-      rbmHmeans +
-      RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+  for(std::size_t learningStep = 0; learningStep < totalLearningStep; ++learningStep){
+    RBMptrs.at(0)->timeEvolution();
+    rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
+    rbmVsums = RBMptrs.at(0)->getPotential().at(0);
+    rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
+    
+    for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
+      RBMptrs.at(rbmNum)->timeEvolution();
+      rbmVHmeans =
+	rbmVHmeans +
+	RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+      rbmVsums =
+	rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
+      rbmHmeans =
+	rbmHmeans +
+	RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+    }
+    
+    vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
+    rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
+    rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
+    rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
+  
+    std::size_t miniBatchNum = randMiniBatchNum(mt);
+    deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
+    deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
+    deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
+
+    RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
+					      deltaConnection);//引数がconst rederenceじゃないと受け付けてくれない!!!
+    RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias);
+    std::cout << learningStep << std::endl;
+  }
+  
+  std::cout << "learning compleated." << std::endl;
+
+  //学習結果のデータ群を出力する
+  vector<int> initialValue(RBM<BBRBMTypeTraits>::totalNodeNum);
+  for(auto itr = initialValue.begin(); itr != initialValue.end(); ++itr){
+    *itr = randbool(mt);
   }
 
+  std::ofstream fout(outputFileName);
+  if(!fout){
+    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    return 1;
+  }
   
-  
-  vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
-  rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
-  rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
-  rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
-
-
-  std::size_t miniBatchNum = randMiniBatchNum(mt);
-  deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
-  deltaBias.push_back(epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans));
-  deltaBias.push_back(epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans));
-
-  RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
-					    deltaConnection);//引数がconst rederenceじゃないと受け付けてくれない!!!
-  RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias);
-
-  std::cout << "all step compleated." << std::endl;/////////////////////      
+  RBM<BBRBMTypeTraits> motherRBM(initialValue);
+  for(std::size_t i = 0; i < totalOutputStep; ++i){
+    motherRBM.timeEvolution();
+    if((i % 100) == 0){
+      vector<BBRBMTypeTraits::potentialType> outputPotential = motherRBM.getPotential().at(0);
+      for(std::size_t j = 0; j < 10; ++j){
+	for(std::size_t k = 0; k < 10; ++k){
+	  fout << outputPotential.at(j*10 + k);
+	}
+	fout << std::endl;
+      }
+      fout << std::endl;
+    }
+  }
+  fout.close();
+  std::cout << "output compleated." << std::endl;
+ 
   return 0;
 }
