@@ -21,8 +21,16 @@ vector<T> operator+(const vector<T>& self,const vector<T>& other){
   if(self.size() != other.size())
     throw std::invalid_argument("You put different size vector.");  
   vector<T> result(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] + other[i];
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  auto otherItr = other.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend() &&
+	otherItr != other.cend()){
+    *resultItr = *selfItr + *otherItr;
+    ++resultItr;
+    ++selfItr;
+    ++otherItr;
+  }
   return result;
 }
 
@@ -33,8 +41,16 @@ vector<T> operator-(const vector<T>& self,const vector<T>& other){
     throw std::invalid_argument("You put different size vector.");
   vector<T> result;
   result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] - other[i];
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  auto otherItr = other.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend() &&
+	otherItr != other.cend()){
+    *resultItr = *selfItr - *otherItr;
+    ++resultItr;
+    ++selfItr;
+    ++otherItr;
+  }  
   return result;
 }
 
@@ -46,8 +62,16 @@ vector<T> operator*(const vector<T>& self,const vector<T>& other){
     throw std::invalid_argument("You put different size vector.");  
   vector<T> result;
   result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] * other[i];
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  auto otherItr = other.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend() &&
+	otherItr != other.cend()){
+    *resultItr = *selfItr * *otherItr;
+    ++resultItr;
+    ++selfItr;
+    ++otherItr;
+  }  
   return result;
 }
 
@@ -56,18 +80,13 @@ template<typename T>
 vector<T> operator*(const vector<T>& self,const T& other){
   vector<T> result;
   result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] * other;
-  return result;
-}
-
-//matrix * scholar
-template<typename T>
-matrix<T> operator*(const matrix<T>& self,const T& other){
-  matrix<T> result;
-  result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] * other;
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend()){
+    *resultItr = *selfItr * other;
+    ++resultItr;
+    ++selfItr;
+  }  
   return result;
 }
 
@@ -77,7 +96,22 @@ vector<T> operator*(const T& self,const vector<T>& other){
   return other*self;
 }
 
-//scholar * vector
+//matrix * scholar
+template<typename T>
+matrix<T> operator*(const matrix<T>& self,const T& other){
+  matrix<T> result;
+  result.resize(self.size());
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend()){
+    *resultItr = *selfItr * other;
+    ++resultItr;
+    ++selfItr;
+  }  
+  return result;
+}
+
+//scholar * matrix
 template<typename T>
 matrix<T> operator*(const T& self,const matrix<T>& other){
   return other*self;
@@ -90,8 +124,16 @@ vector<T> operator/(const vector<T>& self,const vector<T>& other){
     throw std::invalid_argument("You put different size vector.");    
   vector<T> result;
   result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] / other[i];
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  auto otherItr = other.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend() &&
+	otherItr != other.cend()){
+    *resultItr = *selfItr / *otherItr;
+    ++resultItr;
+    ++selfItr;
+    ++otherItr;
+  }  
   return result;
 }
 
@@ -100,8 +142,13 @@ template<typename T>
 vector<T> operator/(const vector<T>& self,const T& other){ 
   vector<T> result;
   result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] / other;
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend()){
+    *resultItr = *selfItr / other;
+    ++resultItr;
+    ++selfItr;
+  }  
   return result;
 }
 
@@ -110,8 +157,13 @@ template<typename T>
 matrix<T> operator/(const matrix<T>& self,const T& other){ 
   matrix<T> result;
   result.resize(self.size());
-  for(std::size_t i = 0; i < self.size(); ++i)
-    result[i] = self[i] / other;
+  auto resultItr = result.begin();
+  auto selfItr = self.cbegin();
+  while(resultItr != result.end() && selfItr != self.cend()){
+    *resultItr = *selfItr / other;
+    ++resultItr;
+    ++selfItr;
+  }    
   return result;
 }
 
@@ -120,8 +172,13 @@ template<typename T>
 vector<T> operator/(const T& self,const vector<T>& other){
   vector<T> result;
   result.resize(other.size());
-  for(std::size_t i = 0; i < other.size(); ++i)
-    result[i] = self / other[i];
+  auto resultItr = result.begin();
+  auto otherItr = other.cbegin();
+  while(resultItr != result.end() && otherItr != other.cend()){
+    *resultItr = self / *otherItr;
+    ++resultItr;
+    ++otherItr;
+  }    
   return result;
 }
 
@@ -130,8 +187,13 @@ template<typename T>
 matrix<T> operator/(const T& self,const matrix<T>& other){
   matrix<T> result;
   result.resize(other.size());
-  for(std::size_t i = 0; i < other.size(); ++i)
-    result[i] = self / other[i];
+  auto resultItr = result.begin();
+  auto otherItr = other.cbegin();
+  while(resultItr != result.end() && otherItr != other.cend()){
+    *resultItr = self / *otherItr;
+    ++resultItr;
+    ++otherItr;
+  }    
   return result;
 }
 
