@@ -57,7 +57,6 @@ public:
   static
   vector<double>
   batchDataMeanCalculateH(const matrix<potentialType>& minibatch);
-
 };
 
 template<typename T_traits>

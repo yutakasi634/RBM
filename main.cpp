@@ -139,6 +139,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   }
 
   fConnection << RBM<BBRBMTypeTraits>::connectionMatrix;
+  fConnection.close();
   
   RBM<BBRBMTypeTraits> motherRBM(initialValue);
   for(std::size_t i = 0; i < totalOutputStep; ++i){

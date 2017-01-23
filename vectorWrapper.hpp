@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
+#include <ostream>
 
 //matrix,tensorの定義
 template<typename T>
