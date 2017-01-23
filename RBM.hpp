@@ -5,6 +5,7 @@
 #include <random>
 #include <cmath>
 #include <cassert>
+#include <fstream>
 #include "vectorWrapper.hpp"
 
 template<typename T_traits>
@@ -56,6 +57,7 @@ public:
   static
   vector<double>
   batchDataMeanCalculateH(const matrix<potentialType>& minibatch);
+
 };
 
 template<typename T_traits>
@@ -76,14 +78,16 @@ template<typename T_traits>
 double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum){
   std::size_t inputLayerNum = (layerNum + 1)%2;
   double sum = 0.0;
+  const auto& connectionNodes = connectionMatrix.at(nodeNum);
+  const auto& potentialNodes = potential.at(inputLayerNum);
   if(layerNum == 0){  
     for(std::size_t i = 0; i < totalNodeNum; ++i){
-      sum += connectionMatrix.at(nodeNum).at(i)*potential.at(inputLayerNum).at(nodeNum);
+      sum += connectionNodes.at(i) * potentialNodes.at(i);
     }
   }
   else{
     for(std::size_t i = 0; i < totalNodeNum; ++i)
-      sum += connectionMatrix.at(i).at(nodeNum)*potential.at(inputLayerNum).at(nodeNum);
+      sum += connectionMatrix.at(i).at(nodeNum) * potentialNodes.at(i);
   }
   sum += bias.at(layerNum).at(nodeNum);
   double possibility = 1.0/(1 + std::exp(-sum));
@@ -94,13 +98,14 @@ template<typename T_traits>
 double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum,
 					 const vector<potentialType>& nodePotentials){
   double sum = 0.0;
+  const auto& connectionNodes = connectionMatrix.at(nodeNum);
   if(layerNum == 0){  
     for(std::size_t i = 0; i < totalNodeNum; ++i)
-      sum += connectionMatrix.at(nodeNum).at(i)*nodePotentials.at(i);
+      sum += connectionNodes.at(i) * nodePotentials.at(i);
   }
   else{
     for(std::size_t i = 0; i < totalNodeNum; ++i){
-      sum += connectionMatrix.at(i).at(nodeNum)*nodePotentials.at(i);
+      sum += connectionMatrix.at(i).at(nodeNum) * nodePotentials.at(i);
     }
   }
   sum += bias.at(layerNum).at(nodeNum);
@@ -125,11 +130,12 @@ RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
 //TODO activationFunction ->activate
 template<typename T_traits>
 void RBM<T_traits>::timeEvolution(){
-  for(std::size_t i = 0; i < totalNodeNum; ++i){
-    potential.at(1).at(i) = activationFunction(1,i);
+  for(int layerNum = 1; layerNum >= 0; --layerNum){
+    auto& oneLayerPotential = potential.at(layerNum);
+    for(std::size_t i = 0; i < totalNodeNum; ++i){
+      oneLayerPotential.at(i) = activationFunction(layerNum,i);
+    }
   }
-  for(std::size_t i = 0; i < totalNodeNum; ++i)
-    potential.at(0).at(i) = activationFunction(0,i);
 }
 
 template<typename T_traits>
@@ -149,8 +155,10 @@ RBM<T_traits>::calculateVH(const vector<potentialType>& visibleLayer){
   matrix<double> potentialVH(totalNodeNum);
   for(std::size_t visibleNodeNum = 0; visibleNodeNum < totalNodeNum; ++visibleNodeNum){
     potentialVH.at(visibleNodeNum).reserve(totalNodeNum);
+    auto& visibleNodePotentialVH = potentialVH.at(visibleNodeNum);
+    const auto& visibleNode = visibleLayer.at(visibleNodeNum);
     for(std::size_t hiddenNodeNum = 0; hiddenNodeNum < totalNodeNum; ++hiddenNodeNum){
-      potentialVH.at(visibleNodeNum).push_back(visibleLayer.at(visibleNodeNum)*hiddenLayer.at(hiddenNodeNum));
+      visibleNodePotentialVH.push_back(visibleNode * hiddenLayer.at(hiddenNodeNum));
     }
   }
   return potentialVH;
