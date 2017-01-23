@@ -3,6 +3,7 @@
 #include "defaultTraits.hpp"
 #include "vectorWrapper.hpp"
 #include <memory>
+#include <fstream>
 
 int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるようにする
   if(argc < 3){
@@ -15,8 +16,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::size_t totalLearningStep = std::atoi(argv[1]);
   const std::size_t totalOutputStep = std::atoi(argv[2]);
   const std::string inputFileName = "data.csv";
-  const std::string outputFileName = "answer.dat";
-    
+  const std::string outputPotentialFileName = "answer.dat";
+  const std::string outputConnectionFileName = "connection.dat";
+  
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
   matrix<BBRBMTypeTraits::potentialType>
     sample = getDataVector<BBRBMTypeTraits::potentialType>(inputFileName);
@@ -61,11 +63,22 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   
   //connectionMatrixを更新して学習する
   double epsilon = 0.1;
+  double myu = 0.9;
   matrix<double> rbmVHmeans;
-  matrix<double> deltaConnection,deltaBias;
+  matrix<double> deltaConnection,deltaBias,oldDeltaConnection,oldDeltaBias;
   vector<int> rbmVsums;
   vector<double> rbmHmeans;
   deltaBias.resize(2);
+
+  for(std::size_t i = 0; i < RBM<BBRBMTypeTraits>::totalNodeNum; ++i){
+    oldDeltaConnection.emplace_back
+      (vector<BBRBMTypeTraits::connectionType>(RBM<BBRBMTypeTraits>::totalNodeNum,0));
+  }
+
+  for(std::size_t i = 0; i < 2; ++i){
+    oldDeltaBias.emplace_back
+      (vector<BBRBMTypeTraits::potentialType>(RBM<BBRBMTypeTraits>::totalNodeNum,0));
+  }
   
   for(std::size_t learningStep = 0; learningStep < totalLearningStep; ++learningStep){
     RBMptrs.at(0)->timeEvolution();
@@ -96,8 +109,12 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
 
     RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
-					      deltaConnection);//引数がconst rederenceじゃないと受け付けてくれない!!!
-    RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias);
+					      deltaConnection + myu * oldDeltaConnection);
+    RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias + myu * oldDeltaBias);
+
+    oldDeltaConnection = deltaConnection;
+    oldDelta = deltaBias;
+    
     std::cout << learningStep << std::endl;
   }
   
@@ -109,11 +126,19 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     *itr = randbool(mt);
   }
 
-  std::ofstream fout(outputFileName);
+  std::ofstream fout(outputPotentialFileName);
   if(!fout){
     std::cout << "ファイルをオープンできませんでした。" << std::endl;
     return 1;
   }
+
+  std::ofstream fConnection(outputConnectionFileName);
+  if(!fConnection){
+    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    return 1;
+  }
+
+  fConnection << RBM<BBRBMTypeTraits>::connectionMatrix;
   
   RBM<BBRBMTypeTraits> motherRBM(initialValue);
   for(std::size_t i = 0; i < totalOutputStep; ++i){
