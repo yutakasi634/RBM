@@ -197,4 +197,14 @@ matrix<T> operator/(const T& self,const matrix<T>& other){
   return result;
 }
 
+// << vector,matrix,tensor
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const vector<T>& self){
+  auto itr = self.begin();
+  while(itr != self.end()){
+    os << "," << *itr;
+  }
+  os << endl;
+}
+
 #endif
