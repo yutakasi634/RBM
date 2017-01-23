@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::string inputFileName = "data.csv";
   const std::string outputPotentialFileName = "answer.dat";
   const std::string outputConnectionFileName = "connection.dat";
-  
+
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
   matrix<BBRBMTypeTraits::potentialType>
     sample = getDataVector<BBRBMTypeTraits::potentialType>(inputFileName);
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     teacher.emplace_back(miniBatch);
   }
   std::cout << "setup teacher-data compleated." << std::endl;
-  
+
   //ミニバッチごとのpotentialの平均値を計算し、保持しておく
   RBM<BBRBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
   tensor<double> dataVHmeans(totalBatchNum);
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   }
 
   std::cout << "calculate dataMeans compleated." << std::endl;
-  
+
   //ミニバッチのサンプル数だけRBMを用意する
   vector<std::shared_ptr<RBM<BBRBMTypeTraits>>> RBMptrs;
   for(std::size_t i = 0; i < miniBatchSampleNum; ++i){
@@ -59,8 +59,8 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     RBMptrs.emplace_back(RBMptr);
   }
   std::cout << "setup RBMs compleated." << std::endl;
-  
-  
+
+
   //connectionMatrixを更新して学習する
   double epsilon = 0.1;
   double myu = 0.9;
@@ -71,21 +71,21 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   deltaBias.resize(2);
 
   for(std::size_t i = 0; i < RBM<BBRBMTypeTraits>::totalNodeNum; ++i){
-    oldDeltaConnection.emplace_back
-      (vector<BBRBMTypeTraits::connectionType>(RBM<BBRBMTypeTraits>::totalNodeNum,0));
-  }
+    vector<BBRBMTypeTraits::connectionType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
+    oldDeltaConnection.emplace_back(tempvector);
+    }
 
   for(std::size_t i = 0; i < 2; ++i){
-    oldDeltaBias.emplace_back
-      (vector<BBRBMTypeTraits::potentialType>(RBM<BBRBMTypeTraits>::totalNodeNum,0));
+    vector<BBRBMTypeTraits::potentialType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
+    oldDeltaBias.emplace_back(tempvector);
   }
-  
+
   for(std::size_t learningStep = 0; learningStep < totalLearningStep; ++learningStep){
     RBMptrs.at(0)->timeEvolution();
     rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
     rbmVsums = RBMptrs.at(0)->getPotential().at(0);
     rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
-    
+
     for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
       RBMptrs.at(rbmNum)->timeEvolution();
       rbmVHmeans =
@@ -97,12 +97,12 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 	rbmHmeans +
 	RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
     }
-    
+
     vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
     rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
     rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
-  
+
     std::size_t miniBatchNum = randMiniBatchNum(mt);
     deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
     deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
@@ -113,11 +113,11 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias + myu * oldDeltaBias);
 
     oldDeltaConnection = deltaConnection;
-    oldDelta = deltaBias;
-    
+    oldDeltaBias = deltaBias;
+
     std::cout << learningStep << std::endl;
   }
-  
+
   std::cout << "learning compleated." << std::endl;
 
   //学習結果のデータ群を出力する
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
   fConnection << RBM<BBRBMTypeTraits>::connectionMatrix;
   fConnection.close();
-  
+
   RBM<BBRBMTypeTraits> motherRBM(initialValue);
   for(std::size_t i = 0; i < totalOutputStep; ++i){
     motherRBM.timeEvolution();
@@ -157,6 +157,6 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   }
   fout.close();
   std::cout << "output compleated." << std::endl;
- 
+
   return 0;
 }
