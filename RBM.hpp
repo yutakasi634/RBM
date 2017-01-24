@@ -97,12 +97,12 @@ template<typename T_traits>
 double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum,
 					 const vector<potentialType>& nodePotentials){
   double sum = 0.0;
-  const auto& connectionNodes = connectionMatrix.at(nodeNum);
-  if(layerNum == 0){  
+  const auto& connectionToHiddeni = connectionMatrix.at(nodeNum);
+  if(layerNum == 0){//可視層の場合
     for(std::size_t i = 0; i < totalNodeNum; ++i)
-      sum += connectionNodes.at(i) * nodePotentials.at(i);
+      sum += connectionToHiddeni.at(i) * nodePotentials.at(i);
   }
-  else{
+  else{//隠れ層の場合
     for(std::size_t i = 0; i < totalNodeNum; ++i){
       sum += connectionMatrix.at(i).at(nodeNum) * nodePotentials.at(i);
     }
@@ -122,17 +122,19 @@ RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
     potential = 1;
   else
     potential = 0;
+
+  //  std::cout << rand(randomNumberGenerator) << std::endl;
+  //  std::cout << possibility << std::endl;
   
   return potential;
 }
 
-//TODO activationFunction ->activate
 template<typename T_traits>
 void RBM<T_traits>::timeEvolution(){
   for(int layerNum = 1; layerNum >= 0; --layerNum){
     auto& oneLayerPotential = potential.at(layerNum);
     for(std::size_t i = 0; i < totalNodeNum; ++i){
-      oneLayerPotential.at(i) = activationFunction(layerNum,i);
+      oneLayerPotential.at(i) = activate(layerNum,i);
     }
   }
 }
@@ -153,11 +155,11 @@ RBM<T_traits>::calculateVH(const vector<potentialType>& visibleLayer){
   vector<double> hiddenLayer = calculateH(visibleLayer);
   matrix<double> potentialVH(totalNodeNum);
   for(std::size_t visibleNodeNum = 0; visibleNodeNum < totalNodeNum; ++visibleNodeNum){
-    potentialVH.at(visibleNodeNum).reserve(totalNodeNum);
     auto& visibleNodePotentialVH = potentialVH.at(visibleNodeNum);
-    const auto& visibleNode = visibleLayer.at(visibleNodeNum);
+    visibleNodePotentialVH.reserve(totalNodeNum);
+    const auto& vnodePot = visibleLayer.at(visibleNodeNum);
     for(std::size_t hiddenNodeNum = 0; hiddenNodeNum < totalNodeNum; ++hiddenNodeNum){
-      visibleNodePotentialVH.push_back(visibleNode * hiddenLayer.at(hiddenNodeNum));
+      visibleNodePotentialVH.push_back(vnodePot * hiddenLayer.at(hiddenNodeNum));
     }
   }
   return potentialVH;
@@ -208,7 +210,7 @@ void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){
     bias.at(i).resize(totalNodeNum,0);
   connectionMatrix.resize(totalNodeNum);
   for(std::size_t i = 0; i < totalNodeNum; ++i)
-    connectionMatrix.at(i).resize(totalNodeNum,1);
+    connectionMatrix.at(i).resize(totalNodeNum,0);
 }
 
 template<typename T_traits>
