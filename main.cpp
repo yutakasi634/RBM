@@ -15,9 +15,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
   const std::size_t totalLearningStep = std::atoi(argv[1]);
   const std::size_t totalOutputStep = std::atoi(argv[2]);
-  const std::string inputFileName = "data.csv";
-  const std::string outputPotentialFileName = "answer.dat";
-  const std::string outputConnectionFileName = "connection.dat";
+  const std::string inputFileName = "testd/testData.csv";
+  const std::string outputPotentialFileName = "testd/testAnswer.dat";
+  const std::string outputConnectionFileName = "testd/testConnection.dat";
 
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
   matrix<BBRBMTypeTraits::potentialType>
@@ -62,10 +62,11 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
 
   //connectionMatrixを更新して学習する
-  double epsilon = 0.1;
+  double epsilon = 0.0001;
   double myu = 0.9;
+  matrix<BBRBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
+  matrix<BBRBMTypeTraits::biasType> deltaBias,oldDeltaBias;
   matrix<double> rbmVHmeans;
-  matrix<double> deltaConnection,deltaBias,oldDeltaConnection,oldDeltaBias;
   vector<int> rbmVsums;
   vector<double> rbmHmeans;
   deltaBias.resize(2);
@@ -73,10 +74,10 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   for(std::size_t i = 0; i < RBM<BBRBMTypeTraits>::totalNodeNum; ++i){
     vector<BBRBMTypeTraits::connectionType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
     oldDeltaConnection.emplace_back(tempvector);
-    }
+  }
 
   for(std::size_t i = 0; i < 2; ++i){
-    vector<BBRBMTypeTraits::potentialType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
+    vector<BBRBMTypeTraits::biasType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
     oldDeltaBias.emplace_back(tempvector);
   }
 
@@ -88,9 +89,11 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
     for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
       RBMptrs.at(rbmNum)->timeEvolution();
+      //std::cout << RBMptrs.at(rbmNum)->getPotential().at(0) << "pot" << std::endl;
       rbmVHmeans =
 	rbmVHmeans +
 	RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+      //std::cout << RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0)).at(1) << ":::::::::::::";
       rbmVsums =
 	rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
       rbmHmeans =
@@ -103,18 +106,25 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
 
+    //    std::cout << rbmVHmeans.at(1);
+    
     std::size_t miniBatchNum = randMiniBatchNum(mt);
     deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
     deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
     deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
 
+    deltaConnection = deltaConnection + myu * oldDeltaConnection;
+    deltaBias = deltaBias + myu * oldDeltaBias;
+
+    //    std::cout << deltaConnection.at(1);
+    
     RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
-					      deltaConnection + myu * oldDeltaConnection);
-    RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias + myu * oldDeltaBias);
+					      deltaConnection);
+    RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias);
 
     oldDeltaConnection = deltaConnection;
     oldDeltaBias = deltaBias;
-
+    
     std::cout << learningStep << std::endl;
   }
 
@@ -142,13 +152,18 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   fConnection.close();
 
   RBM<BBRBMTypeTraits> motherRBM(initialValue);
+  std::size_t outputculum = 3;
+  std::size_t outputraw = 3;
+  assert(RBM<BBRBMTypeTraits>::totalNodeNum == outputculum * outputraw);
   for(std::size_t i = 0; i < totalOutputStep; ++i){
     motherRBM.timeEvolution();
     if((i % 100) == 0){
       vector<BBRBMTypeTraits::potentialType> outputPotential = motherRBM.getPotential().at(0);
-      for(std::size_t j = 0; j < 10; ++j){
-	for(std::size_t k = 0; k < 10; ++k){
-	  fout << outputPotential.at(j*10 + k);
+      auto itr = outputPotential.begin();
+      for(std::size_t j = 0; j < outputraw; ++j){
+	for(std::size_t k = 0; k < outputculum; ++k){
+	  fout << *itr << ",";
+	  ++itr;
 	}
 	fout << std::endl;
       }
