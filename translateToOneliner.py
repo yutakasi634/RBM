@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import csv
+import sys
 
-fout = open('data.csv', 'w')
+args = sys.argv
+
+if args[1].find('.') == -1:
+    print('拡張子がありません')
+
+fout = open(args[1][0:args[1].find('.')] + '.csv', 'w')
 csvWriter = csv.writer(fout)
 
 char_list = []
 
-for line in open('data.dat', 'r'):
+for line in open(args[1], 'r'):
     if line[0] == "#":
         continue
     elif line.isspace():
