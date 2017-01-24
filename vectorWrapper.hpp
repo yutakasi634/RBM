@@ -1,5 +1,5 @@
-#ifndef operatorForVector
-#define operatorForVector
+#ifndef OPERATORFORVECTOR
+#define OPERATORFORVECTOR
 #include <iostream>
 #include <vector>
 #include <stdexcept>
@@ -202,10 +202,12 @@ matrix<T> operator/(const T& self,const matrix<T>& other){
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const vector<T>& self){
   auto itr = self.begin();
-  while(itr != self.end()){
-    os << "," << *itr;
+  while(itr != self.end() - 1){
+    os << *itr << ",";
+    ++itr;
   }
-  os << endl;
+  os << *itr << std::endl;
+  return os;
 }
 
 #endif
