@@ -93,9 +93,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmVsums = RBMptrs.at(0)->getPotential().at(0);
     rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
 
+    ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
     ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
 	  << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
-    ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
     ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
     ftest << "rbmVHmeans" << std::endl << rbmVHmeans;
     
