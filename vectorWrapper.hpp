@@ -21,7 +21,7 @@ using tensor = vector<matrix<T> >;
 template<bool condition>
 using enable_if_type = typename std::enable_if<condition,std::nullptr_t>::type;
 
-//vectorに対する四則演算のオーバーロード(前方宣言)
+//vectorに対する四則演算と<<のオーバーロード(前方宣言)
 //+
 template<typename T1, typename T2>
 vector<decltype(std::declval<T1>() + std::declval<T2>())>
@@ -34,12 +34,12 @@ operator-(const vector<T1>& self,const vector<T2>& other);
 
 //vector * scholar
 template<typename T1 ,typename T2, enable_if_type<std::is_arithmetic<T2>::value> = nullptr>
-vector<decltype(std::declval<T1>() + std::declval<T2>())>
+vector<decltype(std::declval<T1>() * std::declval<T2>())>
 operator*(const vector<T1>& self,const T2& other);
 
 //scholar * vector
 template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> = nullptr>
-vector<decltype(std::declval<T1>() + std::declval<T2>())>
+vector<decltype(std::declval<T1>() * std::declval<T2>())>
 operator*(const T1& self,const vector<T2>& other);
 
 
@@ -62,6 +62,14 @@ operator/(const vector<T1>& self,const T2& other);
 template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> = nullptr>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const T1& self,const vector<T2>& other);
+
+// << vector<scholar>
+  template<typename T, enable_if_type<std::is_arithmetic<T>::value> = nullptr>
+  std::ostream& operator<<(std::ostream& os, const vector<T>& self);
+
+// << matrix,tensor
+template<typename T, enable_if_type<not(std::is_arithmetic<T>::value)> = nullptr>
+std::ostream& operator<<(std::ostream& os, const vector<T>& self);
 
 //定義
 //+
@@ -128,10 +136,10 @@ operator*(const vector<T1>& self,const vector<T2>& other){
 }
 
 //vector * scholar
-template<typename T1 ,typename T2, enable_if_type<std::is_arithmetic<T2>::value> = nullptr>
-vector<decltype(std::declval<T1>() + std::declval<T2>())>
+template<typename T1 ,typename T2, enable_if_type<std::is_arithmetic<T2>::value> >
+vector<decltype(std::declval<T1>() * std::declval<T2>())>
 operator*(const vector<T1>& self,const T2& other){
-  vector<decltype(std::declval<T1>() + std::declval<T2>())> result;
+  vector<decltype(std::declval<T1>() * std::declval<T2>())> result;
   result.resize(self.size());
   auto resultItr = result.begin();
   auto selfItr = self.cbegin();
@@ -144,8 +152,8 @@ operator*(const vector<T1>& self,const T2& other){
 }
 
 //scholar * vector
-template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> = nullptr>
-vector<decltype(std::declval<T1>() + std::declval<T2>())>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> >
+vector<decltype(std::declval<T1>() * std::declval<T2>())>
 operator*(const T1& self,const vector<T2>& other){
   return other*self;
 }
@@ -172,7 +180,7 @@ operator/(const vector<T1>& self,const vector<T2>& other){
 }
 
 // vector / scholar
-template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T2>::value> = nullptr>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T2>::value> >
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const vector<T1>& self,const T2& other){ 
   vector<decltype(std::declval<T1>() / std::declval<T2>())> result;
@@ -188,7 +196,7 @@ operator/(const vector<T1>& self,const T2& other){
 }
 
 // scholar / vector
-template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> = nullptr>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> >
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const T1& self,const vector<T2>& other){
   vector<decltype(std::declval<T1>() / std::declval<T2>())> result;
@@ -204,7 +212,7 @@ operator/(const T1& self,const vector<T2>& other){
 }
 
 // << vector<scholar>
-  template<typename T, enable_if_type<std::is_arithmetic<T>::value> = nullptr>
+  template<typename T, enable_if_type<std::is_arithmetic<T>::value> >
 std::ostream& operator<<(std::ostream& os, const vector<T>& self){
   auto itr = self.begin();
   while(itr != self.end() - 1){
@@ -216,7 +224,7 @@ std::ostream& operator<<(std::ostream& os, const vector<T>& self){
 }
 
 // << matrix,tensor
-template<typename T, enable_if_type<not(std::is_arithmetic<T>::value)> = nullptr>
+template<typename T, enable_if_type<not(std::is_arithmetic<T>::value)> >
 std::ostream& operator<<(std::ostream& os, const vector<T>& self){
   auto itr = self.begin();
   while(itr != self.end() - 1){
