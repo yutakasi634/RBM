@@ -154,14 +154,13 @@ matrix<double>
 RBM<T_traits>::calculateVH(const vector<potentialType>& visibleLayer){
   vector<double> hiddenLayer = calculateH(visibleLayer);
   matrix<double> potentialVH(totalNodeNum);
-  for(std::size_t visibleNodeNum = 0; visibleNodeNum < totalNodeNum; ++visibleNodeNum){
-    auto& visibleNodePotentialVH = potentialVH.at(visibleNodeNum);
-    visibleNodePotentialVH.reserve(totalNodeNum);
-    const auto& vnodePot = visibleLayer.at(visibleNodeNum);
-    for(std::size_t hiddenNodeNum = 0; hiddenNodeNum < totalNodeNum; ++hiddenNodeNum){
-      visibleNodePotentialVH.push_back(vnodePot * hiddenLayer.at(hiddenNodeNum));
+  auto itrPotVH = potentialVH.begin();
+  auto itrPotVi = visibleLayer.begin();
+  while(itrPotVH != potentialVH.end() && itrPotVi != visibleLayer.end()){
+    *itrPotVH = *itrPotVi * hiddenLayer;
+    ++itrPotVH;
+    ++itrPotVi;
     }
-  }
   return potentialVH;
 }
 
