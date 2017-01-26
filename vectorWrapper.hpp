@@ -48,40 +48,20 @@ template<typename T1, typename T2>
 vector<decltype(std::declval<T1>() * std::declval<T2>())>
 operator*(const vector<T1>& self,const vector<T2>& other);
 
-//matrix * scholar
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() * std::declval<T2>())>
-operator*(const matrix<T1>& self,const T2& other);
-
-//scholar * matrix
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() * std::declval<T2>())>
-operator*(const T1& self,const matrix<T2>& other);
-
 // vector / vector
 template<typename T1, typename T2>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const vector<T1>& self,const vector<T2>& other);
 
 // vector / scholar
-template<typename T1, typename T2>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T2>::value> = nullptr>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const vector<T1>& self,const T2& other);
 
-// matrix / scholar
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() / std::declval<T2>())>
-operator/(const matrix<T1>& self,const T2& other);
-
 // scholar / vector
-template<typename T1, typename T2>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> = nullptr>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const T1& self,const vector<T2>& other);
-
-// scholar / matrix
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() / std::declval<T2>())>
-operator/(const T1& self,const matrix<T2>& other);
 
 //定義
 //+
@@ -170,29 +150,6 @@ operator*(const T1& self,const vector<T2>& other){
   return other*self;
 }
 
-//matrix * scholar
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() * std::declval<T2>())>
-operator*(const matrix<T1>& self,const T2& other){
-  matrix<decltype(std::declval<T1>() * std::declval<T2>())> result;
-  result.resize(self.size());
-  auto resultItr = result.begin();
-  auto selfItr = self.cbegin();
-  while(resultItr != result.end() && selfItr != self.cend()){
-    *resultItr = *selfItr * other;
-    ++resultItr;
-    ++selfItr;
-  }  
-  return result;
-}
-
-//scholar * matrix
-template<typename T1 ,typename T2>
-matrix<decltype(std::declval<T1>() * std::declval<T2>())>
-operator*(const T1& self,const matrix<T2>& other){
-  return other*self;
-}
-
 // vector / vector
 template<typename T1, typename T2>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
@@ -215,7 +172,7 @@ operator/(const vector<T1>& self,const vector<T2>& other){
 }
 
 // vector / scholar
-template<typename T1, typename T2>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T2>::value> = nullptr>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const vector<T1>& self,const T2& other){ 
   vector<decltype(std::declval<T1>() / std::declval<T2>())> result;
@@ -230,24 +187,8 @@ operator/(const vector<T1>& self,const T2& other){
   return result;
 }
 
-// matrix / scholar
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() / std::declval<T2>())>
-operator/(const matrix<T1>& self,const T2& other){ 
-  matrix<decltype(std::declval<T1>() / std::declval<T2>())> result;
-  result.resize(self.size());
-  auto resultItr = result.begin();
-  auto selfItr = self.cbegin();
-  while(resultItr != result.end() && selfItr != self.cend()){
-    *resultItr = *selfItr / other;
-    ++resultItr;
-    ++selfItr;
-  }    
-  return result;
-}
-
 // scholar / vector
-template<typename T1, typename T2>
+template<typename T1, typename T2, enable_if_type<std::is_arithmetic<T1>::value> = nullptr>
 vector<decltype(std::declval<T1>() / std::declval<T2>())>
 operator/(const T1& self,const vector<T2>& other){
   vector<decltype(std::declval<T1>() / std::declval<T2>())> result;
@@ -261,23 +202,6 @@ operator/(const T1& self,const vector<T2>& other){
   }    
   return result;
 }
-
-// scholar / matrix
-template<typename T1, typename T2>
-matrix<decltype(std::declval<T1>() / std::declval<T2>())>
-operator/(const T1& self,const matrix<T2>& other){
-  matrix<decltype(std::declval<T1>() / std::declval<T2>())> result;
-  result.resize(other.size());
-  auto resultItr = result.begin();
-  auto otherItr = other.cbegin();
-  while(resultItr != result.end() && otherItr != other.cend()){
-    *resultItr = self / *otherItr;
-    ++resultItr;
-    ++otherItr;
-  }    
-  return result;
-}
-
 
 // << vector<scholar>
   template<typename T, enable_if_type<std::is_arithmetic<T>::value> = nullptr>
