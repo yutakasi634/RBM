@@ -10,6 +10,11 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     std::cout << "引数が足りません" << std::endl;
     return 1;
   }
+
+  std::ofstream ftest("testd/dump.dat");
+  ftest << "totalLearningStep " << argv[1] << std::endl;
+  ftest << "totalOutoutStep " << argv[2] << std::endl;
+  
   const std::size_t dataNum = 1000;
   const std::size_t miniBatchSampleNum = 100;
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
@@ -18,7 +23,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::string inputFileName = "testd/testData.csv";
   const std::string outputPotentialFileName = "testd/testAnswer.dat";
   const std::string outputConnectionFileName = "testd/testConnection.dat";
-
+  
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
   matrix<BBRBMTypeTraits::potentialType>
     sample = getDataVector<BBRBMTypeTraits::potentialType>(inputFileName);
@@ -81,19 +86,24 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     oldDeltaBias.emplace_back(tempvector);
   }
 
+  //学習  
   for(std::size_t learningStep = 0; learningStep < totalLearningStep; ++learningStep){
     RBMptrs.at(0)->timeEvolution();
     rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
     rbmVsums = RBMptrs.at(0)->getPotential().at(0);
     rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
 
+    ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
+	  << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
+    ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
+    ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
+    ftest << "rbmVHmeans" << std::endl << rbmVHmeans;
+    
     for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
       RBMptrs.at(rbmNum)->timeEvolution();
-      //std::cout << RBMptrs.at(rbmNum)->getPotential().at(0) << "pot" << std::endl;
       rbmVHmeans =
 	rbmVHmeans +
 	RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
-      //std::cout << RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0)).at(1) << ":::::::::::::";
       rbmVsums =
 	rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
       rbmHmeans =
@@ -101,18 +111,21 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 	RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
     }
 
+    ftest << "rbmVHmeans" << std::endl << rbmVHmeans.at(1);
+    
     vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
     rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
     rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
 
-    //    std::cout << rbmVHmeans.at(1);
-    
     std::size_t miniBatchNum = randMiniBatchNum(mt);
     deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
     deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
     deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
 
+    ftest << "rbmVHmeans" << std::endl << rbmVHmeans.at(1);
+    ftest << "dataVHmeans" << std::endl << dataVHmeans.at(miniBatchNum).at(1);
+    
     deltaConnection = deltaConnection + myu * oldDeltaConnection;
     deltaBias = deltaBias + myu * oldDeltaBias;
 
