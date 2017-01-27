@@ -79,12 +79,12 @@ double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeN
   double sum = 0.0;
   const auto& connectionNodes = connectionMatrix.at(nodeNum);
   const auto& potentialNodes = potential.at(inputLayerNum);
-  if(layerNum == 0){  
+  if(layerNum == 0){//可視層の場合
     for(std::size_t i = 0; i < totalNodeNum; ++i){
       sum += connectionNodes.at(i) * potentialNodes.at(i);
     }
   }
-  else{
+  else{//隠れ層の場合
     for(std::size_t i = 0; i < totalNodeNum; ++i)
       sum += connectionMatrix.at(i).at(nodeNum) * potentialNodes.at(i);
   }
@@ -123,9 +123,6 @@ RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
   else
     potential = 0;
 
-  //  std::cout << rand(randomNumberGenerator) << std::endl;
-  //  std::cout << possibility << std::endl;
-  
   return potential;
 }
 
@@ -160,7 +157,7 @@ RBM<T_traits>::calculateVH(const vector<potentialType>& visibleLayer){
     *itrPotVH = *itrPotVi * hiddenLayer;
     ++itrPotVH;
     ++itrPotVi;
-    }
+  }
   return potentialVH;
 }
 
@@ -180,12 +177,10 @@ template<typename T_traits>
 vector<double>
 RBM<T_traits>::batchDataMeanCalculateV(const matrix<potentialType>& miniBatch){
   vector<double> meanPotentialV(totalNodeNum);
-  for(std::size_t nodeNum = 0; nodeNum < totalNodeNum; ++nodeNum){
-    double sum;
-    for(std::size_t sampleNum = 0; sampleNum < miniBatch.size(); ++sampleNum)
-      sum += miniBatch.at(sampleNum).at(nodeNum);
-    meanPotentialV.at(nodeNum) = sum/miniBatch.size();
+  for(auto itr = miniBatch.begin(); itr != miniBatch.end(); ++itr){
+    meanPotentialV = meanPotentialV + *itr;
   }
+  meanPotentialV = meanPotentialV / miniBatch.size();
   return meanPotentialV;
 }
 
@@ -204,12 +199,26 @@ void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){
   totalNodeNum = nodeNum;
   int totalLayerNum = 2;
   randomNumberGenerator.seed(randomSeed);
-  bias.resize(totalLayerNum);
-  for(std::size_t i = 0; i < totalLayerNum; ++i)
-    bias.at(i).resize(totalNodeNum,0);
-  connectionMatrix.resize(totalNodeNum);
-  for(std::size_t i = 0; i < totalNodeNum; ++i)
-    connectionMatrix.at(i).resize(totalNodeNum,0);
+  std::uniform_real_distribution<double> rand(0.0,1.0);
+  bias.reserve(totalLayerNum);
+  for(std::size_t i = 0; i < totalLayerNum; ++i){
+    vector<biasType> tempBias;
+    tempBias.reserve(totalNodeNum);
+    for(std::size_t j = 0; j < totalNodeNum; ++j){
+      tempBias.emplace_back(rand(randomNumberGenerator));
+    }
+    bias.emplace_back(tempBias);
+  }
+  connectionMatrix.reserve(totalNodeNum);
+  for(std::size_t i = 0; i < totalNodeNum; ++i){
+    vector<connectionType> tempConn;
+    tempConn.reserve(totalNodeNum);
+    for(std::size_t j = 0; j < totalNodeNum; ++j){
+      tempConn.emplace_back(rand(randomNumberGenerator));
+    }  
+    connectionMatrix.emplace_back(tempConn);
+  }
+  std::cout << "RMBstaticGenerate compleated" << std::endl;
 }
 
 template<typename T_traits>
