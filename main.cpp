@@ -4,6 +4,7 @@
 #include "vectorWrapper.hpp"
 #include <memory>
 #include <fstream>
+#include <string>
 
 int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるようにする
   if(argc < 3){
@@ -11,7 +12,14 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     return 1;
   }
 
-  std::ofstream ftest("testd/dump.dat");
+  const std::string testdir = "../testd/";
+
+  std::ofstream ftest(testdir + "dump.dat");
+  if(!ftest){
+    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    return 1;
+  }
+  
   ftest << "totalLearningStep " << argv[1] << std::endl;
   ftest << "totalOutoutStep " << argv[2] << std::endl;
   
@@ -20,14 +28,28 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
   const std::size_t totalLearningStep = std::atoi(argv[1]);
   const std::size_t totalOutputStep = std::atoi(argv[2]);
-  const std::string inputFileName = "testd/testData.csv";
-  const std::string outputPotentialFileName = "testd/testAnswer.dat";
-  const std::string outputConnectionFileName = "testd/testConnection.dat";
+  const std::string inputFileName = testdir + "testData1.csv";
+  const std::string outputPotentialFileName = testdir + "testAnswer.dat";
+  const std::string outputConnectionFileName = testdir + "testConnection.dat";
+
+  std::ofstream fout(outputPotentialFileName);
+  if(!fout){
+    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    return 1;
+  }
+
+  std::ofstream fConnection(outputConnectionFileName);
+  if(!fConnection){
+    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    return 1;
+  }
   
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
   matrix<BBRBMTypeTraits::potentialType>
     sample = getDataVector<BBRBMTypeTraits::potentialType>(inputFileName);
 
+  ftest << "sample" << std::endl << sample << std::endl;
+  
   std::mt19937 mt(0);
   std::uniform_int_distribution<std::size_t> randSampleKind(0,sample.size() - 1);
   std::uniform_int_distribution<std::size_t> randMiniBatchNum(0,totalBatchNum - 1);
@@ -43,10 +65,15 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     }
     teacher.emplace_back(miniBatch);
   }
+
+  ftest << "teacher-data" << std::endl << teacher << std::endl;
+  
   std::cout << "setup teacher-data compleated." << std::endl;
 
   //ミニバッチごとのpotentialの平均値を計算し、保持しておく
   RBM<BBRBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
+  ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
+  ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
   tensor<double> dataVHmeans(totalBatchNum);
   matrix<double> dataVmeans(totalBatchNum),dataHmeans(totalBatchNum);
   for(std::size_t batchNum = 0; batchNum < totalBatchNum; ++batchNum){
@@ -67,7 +94,8 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
 
   //connectionMatrixを更新して学習する
-  double epsilon = 0.0001;
+  double epsilon = 0.1;
+  double lambda = 0.01;
   double myu = 0.9;
   matrix<BBRBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
   matrix<BBRBMTypeTraits::biasType> deltaBias,oldDeltaBias;
@@ -95,9 +123,10 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
     ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
     ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
-	  << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
+	  << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
+	  << std::endl;
     ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
-    ftest << "rbmVHmeans" << std::endl << rbmVHmeans;
+    ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
     
     for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
       RBMptrs.at(rbmNum)->timeEvolution();
@@ -111,8 +140,6 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 	RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
     }
 
-    ftest << "rbmVHmeans" << std::endl << rbmVHmeans.at(1);
-    
     vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
     rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
     rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
@@ -123,12 +150,19 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
     deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
 
-    ftest << "rbmVHmeans" << std::endl << rbmVHmeans.at(1);
-    ftest << "dataVHmeans" << std::endl << dataVHmeans.at(miniBatchNum).at(1);
+    ftest << "dataVmeans" << std::endl << dataVmeans.at(miniBatchNum) << std::endl;
+    ftest << "dataHmeans" << std::endl << dataHmeans.at(miniBatchNum) << std::endl;
+    ftest << "rbmVmeans" << std::endl << rbmVmeans << std::endl;
+    ftest << "rbmHmeans" << std::endl << rbmHmeans << std::endl;
+    
+    deltaConnection = deltaConnection - lambda * RBM<BBRBMTypeTraits>::connectionMatrix;
+    
+    ftest << "deltaConnection" << std::endl << deltaConnection;
+    ftest << "deltaBias" << std::endl << deltaBias;
     
     deltaConnection = deltaConnection + myu * oldDeltaConnection;
     deltaBias = deltaBias + myu * oldDeltaBias;
-
+    
     //    std::cout << deltaConnection.at(1);
     
     RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
@@ -149,25 +183,16 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     *itr = randbool(mt);
   }
 
-  std::ofstream fout(outputPotentialFileName);
-  if(!fout){
-    std::cout << "ファイルをオープンできませんでした。" << std::endl;
-    return 1;
-  }
-
-  std::ofstream fConnection(outputConnectionFileName);
-  if(!fConnection){
-    std::cout << "ファイルをオープンできませんでした。" << std::endl;
-    return 1;
-  }
 
   fConnection << RBM<BBRBMTypeTraits>::connectionMatrix;
   fConnection.close();
 
   RBM<BBRBMTypeTraits> motherRBM(initialValue);
-  std::size_t outputculum = 3;
-  std::size_t outputraw = 3;
+  std::size_t outputculum =
+    static_cast<std::size_t>(std::sqrt(RBM<BBRBMTypeTraits>::totalNodeNum));
+  std::size_t outputraw = outputculum;
   assert(RBM<BBRBMTypeTraits>::totalNodeNum == outputculum * outputraw);
+  vector<double> meanPotential(RBM<BBRBMTypeTraits>::totalNodeNum,0);
   for(std::size_t i = 0; i < totalOutputStep; ++i){
     motherRBM.timeEvolution();
     if((i % 100) == 0){
@@ -182,7 +207,10 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
       }
       fout << std::endl;
     }
+    meanPotential = meanPotential + motherRBM.getPotential().at(0);
   }
+  meanPotential = meanPotential / totalOutputStep;
+  fout << "meanPotential" << std::endl << meanPotential << std::endl;
   fout.close();
   std::cout << "output compleated." << std::endl;
 
