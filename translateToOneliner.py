@@ -21,6 +21,7 @@ for line in open(args[1], 'r'):
         char_list = []
     else:
         line = line.replace('\n','')
+        line = line.replace(',','')
         char_list.extend(list(line))
 
 csvWriter.writerow(char_list)
