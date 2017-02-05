@@ -12,7 +12,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     return 1;
   }
 
-  const std::string testdir = "../testd/";
+  const std::string testdir = "../testdfor1sample/";
 
   std::ofstream ftest(testdir + "dump.dat");
   if(!ftest){
@@ -28,19 +28,27 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
   const std::size_t totalLearningStep = std::atoi(argv[1]);
   const std::size_t totalOutputStep = std::atoi(argv[2]);
-  const std::string inputFileName = testdir + "testData1.csv";
-  const std::string outputPotentialFileName = testdir + "testAnswer.dat";
-  const std::string outputConnectionFileName = testdir + "testConnection.dat";
-
+  const std::string inputFileName = testdir + "testData.csv";
+  const std::string outputTeacherData = testdir + "teacherData.dat";
+  const std::string outputPotentialFileName = testdir + "answer.dat";
+  const std::string outputConnectionFileName = testdir + "connection.dat";
+  const std::size_t dumpstep = totalLearningStep / 100;
+  
   std::ofstream fout(outputPotentialFileName);
   if(!fout){
-    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    std::cout << outputPotentialFileName << "をオープンできませんでした。" << std::endl;
     return 1;
   }
 
   std::ofstream fConnection(outputConnectionFileName);
   if(!fConnection){
-    std::cout << "ファイルをオープンできませんでした。" << std::endl;
+    std::cout << outputConnectionFileName << "をオープンできませんでした。" << std::endl;
+    return 1;
+  }
+
+  std::ofstream fteacher(outputTeacherData);
+  if(!fteacher){
+    std::cout << outputTeacherData << "をオープンできませんでした。" << std::endl;
     return 1;
   }
   
@@ -66,8 +74,8 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     teacher.emplace_back(miniBatch);
   }
 
-  ftest << "teacher-data" << std::endl << teacher << std::endl;
-  
+  fteacher << "teacher-data" << std::endl << teacher << std::endl;
+  fteacher.close();
   std::cout << "setup teacher-data compleated." << std::endl;
 
   //ミニバッチごとのpotentialの平均値を計算し、保持しておく
@@ -121,12 +129,14 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmVsums = RBMptrs.at(0)->getPotential().at(0);
     rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
 
-    ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
-    ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
-	  << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
-	  << std::endl;
-    ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
-    ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
+    if(learningStep % dumpstep == 0){
+      ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
+      ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
+	    << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
+	    << std::endl;
+      ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
+      ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
+    }
     
     for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
       RBMptrs.at(rbmNum)->timeEvolution();
@@ -150,15 +160,19 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
     deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
 
-    ftest << "dataVmeans" << std::endl << dataVmeans.at(miniBatchNum) << std::endl;
-    ftest << "dataHmeans" << std::endl << dataHmeans.at(miniBatchNum) << std::endl;
-    ftest << "rbmVmeans" << std::endl << rbmVmeans << std::endl;
-    ftest << "rbmHmeans" << std::endl << rbmHmeans << std::endl;
-    
+    if(learningStep % dumpstep == 0){
+      ftest << "dataVmeans" << std::endl << dataVmeans.at(miniBatchNum) << std::endl;
+      ftest << "dataHmeans" << std::endl << dataHmeans.at(miniBatchNum) << std::endl;
+      ftest << "rbmVmeans" << std::endl << rbmVmeans << std::endl;
+      ftest << "rbmHmeans" << std::endl << rbmHmeans << std::endl;
+    }
+
     deltaConnection = deltaConnection - lambda * RBM<BBRBMTypeTraits>::connectionMatrix;
-    
-    ftest << "deltaConnection" << std::endl << deltaConnection;
-    ftest << "deltaBias" << std::endl << deltaBias;
+
+    if(learningStep % dumpstep == 0){    
+      ftest << "deltaConnection" << std::endl << deltaConnection;
+      ftest << "deltaBias" << std::endl << deltaBias;
+    }
     
     deltaConnection = deltaConnection + myu * oldDeltaConnection;
     deltaBias = deltaBias + myu * oldDeltaBias;
