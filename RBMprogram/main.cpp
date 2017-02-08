@@ -5,6 +5,7 @@
 #include <memory>
 #include <fstream>
 #include <string>
+#include <numeric>
 
 int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるようにする
   if(argc < 4){
@@ -26,11 +27,13 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::size_t totalOutputStep = std::atoi(argv[3]);
   const std::string inputFileName = dirpass + "input.csv";
   const std::string outputTeacherData = dirpass + "teacherData.dat";
-  const std::string outputPotentialFilermName = dirpass + "answer.dat";
+  const std::string outputPotentialFileName = dirpass + "answer.dat";
   const std::string outputConnectionFileName = dirpass + "connection.dat";
+  const std::string differentiationLogLikelihood = dirpass + "differentiationLogLikelihood.dat";
   const std::size_t dumpstep = totalLearningStep / 100;
   const std::size_t outputPotentialNum = 100;
 
+  
   ftest << "dataNum " << dataNum << std::endl;
   ftest << "miniBatchSmpleNum " << miniBatchSampleNum << std::endl;
   ftest << "totalBatchNum " << totalBatchNum << std::endl;
@@ -38,7 +41,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   std::ofstream fout(outputPotentialFileName);
   std::ofstream fConnection(outputConnectionFileName);
   std::ofstream fteacher(outputTeacherData);
-
+  std::ofstream fdiffLogLikely(differentiationLogLikelihood);
   std::cout << inputFileName << std::endl;
   
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
@@ -92,15 +95,17 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
 
   //connectionMatrixを更新して学習する
-  double epsilon = 0.1;
+  double epsilon = 0.01;
   double lambda = 0.01;
-  double myu = 0.9;
+  double myu = 0.1;
   matrix<BBRBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
   matrix<BBRBMTypeTraits::biasType> deltaBias,oldDeltaBias;
   matrix<double> rbmVHmeans;
   vector<int> rbmVsums;
   vector<double> rbmHmeans;
   deltaBias.resize(2);
+
+  ftest << "ε " << epsilon << " " << "λ " << lambda << "μ " << myu << std::endl;
 
   for(std::size_t i = 0; i < RBM<BBRBMTypeTraits>::totalNodeNum; ++i){
     vector<BBRBMTypeTraits::connectionType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
@@ -112,7 +117,6 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     oldDeltaBias.emplace_back(tempvector);
   }
 
-  //学習  
   for(std::size_t learningStep = 0; learningStep < totalLearningStep; ++learningStep){
     RBMptrs.at(0)->timeEvolution();
     rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
@@ -120,10 +124,10 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
 
     if(learningStep % dumpstep == 0){
-      ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
-      ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
-	    << RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
-	    << std::endl;
+      /*ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
+	ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
+	<< RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
+	<< std::endl;*/
       ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
       ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
     }
@@ -146,10 +150,32 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
 
     std::size_t miniBatchNum = randMiniBatchNum(mt);
-    deltaConnection = epsilon*(dataVHmeans.at(miniBatchNum) - rbmVHmeans);
+    matrix<double> diffByWLogLikelyMatrix= dataVHmeans.at(miniBatchNum) - rbmVHmeans;
+    vector<double> tempsum;
+    if(learningStep % 10 == 0){
+      //std::cout << "diffByWLogLikelyMatrix" << std::endl << diffByWLogLikelyMatrix << std::endl;
+      for(auto itr = diffByWLogLikelyMatrix.begin(); itr != diffByWLogLikelyMatrix.end(); ++itr){
+	double tempdiffsum(0);
+	for(auto itr2 = (*itr).begin(); itr2 != (*itr).end(); ++itr2){
+	  tempdiffsum += *itr2;
+	}
+	tempsum.emplace_back(tempdiffsum);
+      }
+      //std::cout << "tempsum" << std::endl << tempsum << std::endl;
+      double diffLogLikelySum(0);
+      for(auto itr = tempsum.begin(); itr != tempsum.end(); ++itr){
+	diffLogLikelySum += *itr;
+      }
+      fdiffLogLikely << learningStep << " " << diffLogLikelySum << std::endl;
+    }
+    deltaConnection = epsilon*(diffByWLogLikelyMatrix);
     deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
     deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
 
+    deltaConnection = deltaConnection - lambda * RBM<BBRBMTypeTraits>::connectionMatrix;
+    deltaConnection = deltaConnection + myu * oldDeltaConnection;
+    deltaBias = deltaBias + myu * oldDeltaBias;
+    
     if(learningStep % dumpstep == 0){
       ftest << "dataVmeans" << std::endl << dataVmeans.at(miniBatchNum) << std::endl;
       ftest << "dataHmeans" << std::endl << dataHmeans.at(miniBatchNum) << std::endl;
@@ -157,16 +183,11 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
       ftest << "rbmHmeans" << std::endl << rbmHmeans << std::endl;
     }
 
-    deltaConnection = deltaConnection - lambda * RBM<BBRBMTypeTraits>::connectionMatrix;
-
     if(learningStep % dumpstep == 0){    
       ftest << "deltaConnection" << std::endl << deltaConnection;
       ftest << "deltaBias" << std::endl << deltaBias;
     }
-    
-    deltaConnection = deltaConnection + myu * oldDeltaConnection;
-    deltaBias = deltaBias + myu * oldDeltaBias;
-    
+        
     //    std::cout << deltaConnection.at(1);
     
     RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
@@ -215,6 +236,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   }
   meanPotential = meanPotential / totalOutputStep;
   fout << "meanPotential" << std::endl << meanPotential << std::endl;
+  fdiffLogLikely.close();
   fout.close();
   std::cout << "output compleated." << std::endl;
 

@@ -97,8 +97,8 @@ template<typename T_traits>
 double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum,
 					 const vector<potentialType>& nodePotentials){
   double sum = 0.0;
-  const auto& connectionToHiddeni = connectionMatrix.at(nodeNum);
   if(layerNum == 0){//可視層の場合
+    const auto& connectionToHiddeni = connectionMatrix.at(nodeNum);
     for(std::size_t i = 0; i < totalNodeNum; ++i)
       sum += connectionToHiddeni.at(i) * nodePotentials.at(i);
   }
@@ -176,11 +176,11 @@ RBM<T_traits>::batchDataMeanCalculateVH(const matrix<potentialType>& miniBatch){
 template<typename T_traits>
 vector<double>
 RBM<T_traits>::batchDataMeanCalculateV(const matrix<potentialType>& miniBatch){
-  vector<double> meanPotentialV(totalNodeNum);
+  vector<double> meanPotentialV(totalNodeNum,0);
   for(auto itr = miniBatch.begin(); itr != miniBatch.end(); ++itr){
     meanPotentialV = meanPotentialV + *itr;
   }
-  meanPotentialV = meanPotentialV / miniBatch.size();
+  meanPotentialV = meanPotentialV / (double)miniBatch.size();
   return meanPotentialV;
 }
 
