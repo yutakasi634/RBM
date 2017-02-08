@@ -29,7 +29,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::string outputTeacherData = dirpass + "teacherData.dat";
   const std::string outputPotentialFileName = dirpass + "answer.dat";
   const std::string outputConnectionFileName = dirpass + "connection.dat";
-  const std::string differentiationLogLikelihood = dirpass + "differentiationLogLikelihood.dat";
+  const std::string differentiationLogLikelihood = dirpass + "differentiation.dat";
   const std::size_t dumpstep = totalLearningStep / 100;
   const std::size_t outputPotentialNum = 100;
 
@@ -95,9 +95,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
 
   //connectionMatrixを更新して学習する
-  double epsilon = 0.01;
+  double epsilon = 0.1;
   double lambda = 0.01;
-  double myu = 0.1;
+  double myu = 0.9;
   matrix<BBRBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
   matrix<BBRBMTypeTraits::biasType> deltaBias,oldDeltaBias;
   matrix<double> rbmVHmeans;
@@ -150,27 +150,27 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
 
     std::size_t miniBatchNum = randMiniBatchNum(mt);
-    matrix<double> diffByWLogLikelyMatrix= dataVHmeans.at(miniBatchNum) - rbmVHmeans;
+    matrix<double> diffByWLogLikelyMatrix = dataVHmeans.at(miniBatchNum) - rbmVHmeans;
+    vector<double> diffByALogLikelyVector = dataVmeans.at(miniBatchNum) - rbmVmeans;
+    vector<double> diffByBLogLikelyVector = dataHmeans.at(miniBatchNum) - rbmHmeans;
     vector<double> tempsum;
     if(learningStep % 10 == 0){
       //std::cout << "diffByWLogLikelyMatrix" << std::endl << diffByWLogLikelyMatrix << std::endl;
       for(auto itr = diffByWLogLikelyMatrix.begin(); itr != diffByWLogLikelyMatrix.end(); ++itr){
-	double tempdiffsum(0);
-	for(auto itr2 = (*itr).begin(); itr2 != (*itr).end(); ++itr2){
-	  tempdiffsum += *itr2;
-	}
-	tempsum.emplace_back(tempdiffsum);
+	tempsum.emplace_back(std::accumulate((*itr).begin(), (*itr).end(), 0.0));
       }
-      //std::cout << "tempsum" << std::endl << tempsum << std::endl;
-      double diffLogLikelySum(0);
-      for(auto itr = tempsum.begin(); itr != tempsum.end(); ++itr){
-	diffLogLikelySum += *itr;
-      }
-      fdiffLogLikely << learningStep << " " << diffLogLikelySum << std::endl;
+      double diffByWLogLikelySum(std::accumulate(tempsum.begin(), tempsum.end(), 0.0));
+      double diffByALogLikelySum(std::accumulate(diffByALogLikelyVector.begin(),
+						 diffByALogLikelyVector.end(), 0.0));
+      double diffByBLogLikelySum(std::accumulate(diffByBLogLikelyVector.begin(),
+						 diffByBLogLikelyVector.end(), 0.0));
+      fdiffLogLikely << learningStep << " " << diffByWLogLikelySum << " "
+		     << diffByALogLikelySum << " " << diffByBLogLikelySum << std::endl;
     }
+    
     deltaConnection = epsilon*(diffByWLogLikelyMatrix);
-    deltaBias.at(0) = epsilon*(dataVmeans.at(miniBatchNum) - rbmVmeans);
-    deltaBias.at(1) = epsilon*(dataHmeans.at(miniBatchNum) - rbmHmeans);
+    deltaBias.at(0) = epsilon*(diffByALogLikelyVector);
+    deltaBias.at(1) = epsilon*(diffByBLogLikelyVector);
 
     deltaConnection = deltaConnection - lambda * RBM<BBRBMTypeTraits>::connectionMatrix;
     deltaConnection = deltaConnection + myu * oldDeltaConnection;
