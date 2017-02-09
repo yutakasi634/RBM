@@ -34,12 +34,16 @@ if __name__ == "__main__":
         if arr != []:
             data.append(arr)
 
-    if len(data) <= 10:
+    if len(data) <= 10 and len(data) > 1:
         fig, axes = plt.subplots(1,len(data), subplot_kw={'xticks': [], 'yticks': []})
         
         for i in range(0, len(data)):
             axes[i].imshow(data[i], cmap = cm.Greys, interpolation = 'nearest')
-        fig.set_size_inches(3.0*len(data),3.0*len(data),True)                
+        fig.set_size_inches(3.0*len(data),3.0*len(data),True)
+    elif len(data) == 1:
+        fig, axes = plt.subplots(1,1, subplot_kw={'xticks': [], 'yticks': []})
+        axes.imshow(data[0], cmap = cm.Greys, interpolation = 'nearest')
+        fig.set_size_inches(5.0, 5.0, True)
     else:
         rownum = int((len(data) / 10))
         fig, axes = plt.subplots(rownum,10, subplot_kw={'xticks': [], 'yticks': []})

@@ -24,7 +24,5 @@ if __name__ == "__main__":
             data.append(arr)
 
     plt.figure(figsize=(10,10))
-    sns.heatmap(data[0] , annot = True, cmap = 'RdBu_r')            
+    sns.heatmap(data[0] , annot = False, cmap = 'RdBu_r')            
     plt.savefig(args[1][0:args[1].find('.')] + '.png')
-    
-
