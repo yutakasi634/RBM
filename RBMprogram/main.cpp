@@ -22,6 +22,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   
   const std::size_t dataNum = 1000;
   const std::size_t miniBatchSampleNum = 100;
+  double epsilon = 0.1;//更新の重み
+  double lambda = 0.01;//正規化の重み
+  double myu = 0.1;//モメンタムの重み
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
   const std::size_t totalLearningStep = std::atoi(argv[2]);
   const std::size_t totalOutputStep = std::atoi(argv[3]);
@@ -37,6 +40,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   ftest << "dataNum " << dataNum << std::endl;
   ftest << "miniBatchSmpleNum " << miniBatchSampleNum << std::endl;
   ftest << "totalBatchNum " << totalBatchNum << std::endl;
+  ftest << "ε " << epsilon << " λ " << lambda << " μ " << myu << std::endl;
   
   std::ofstream fout(outputPotentialFileName);
   std::ofstream fConnection(outputConnectionFileName);
@@ -71,16 +75,13 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   fteacher.close();
   std::cout << "setup teacher-data compleated." << std::endl;
 
-  //ミニバッチごとのpotentialの平均値を計算し、保持しておく
+  //ミニバッチごとの可視層のpotentialの平均値を計算し、保持しておく
   RBM<BBRBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
-  ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
+  ftest << "Connection Matrix" << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
   ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
-  tensor<double> dataVHmeans(totalBatchNum);
-  matrix<double> dataVmeans(totalBatchNum),dataHmeans(totalBatchNum);
+  matrix<double> dataVmeans(totalBatchNum);
   for(std::size_t batchNum = 0; batchNum < totalBatchNum; ++batchNum){
-    dataVHmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateVH(teacher.at(batchNum));
     dataVmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateV(teacher.at(batchNum));
-    dataHmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateH(teacher.at(batchNum));
   }
 
   std::cout << "calculate dataMeans compleated." << std::endl;
@@ -95,30 +96,29 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
 
 
   //connectionMatrixを更新して学習する
-  double epsilon = 0.1;
-  double lambda = 0.01;
-  double myu = 0.9;
   matrix<BBRBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
   matrix<BBRBMTypeTraits::biasType> deltaBias,oldDeltaBias;
-  matrix<double> rbmVHmeans;
+  matrix<double> dataVHmeans,rbmVHmeans;
   vector<int> rbmVsums;
-  vector<double> rbmHmeans;
+  vector<double> dataHmeans,rbmHmeans;
   deltaBias.resize(2);
-
-  ftest << "ε " << epsilon << " " << "λ " << lambda << "μ " << myu << std::endl;
-
   for(std::size_t i = 0; i < RBM<BBRBMTypeTraits>::totalNodeNum; ++i){
     vector<BBRBMTypeTraits::connectionType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
     oldDeltaConnection.emplace_back(tempvector);
   }
-
   for(std::size_t i = 0; i < 2; ++i){
     vector<BBRBMTypeTraits::biasType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
     oldDeltaBias.emplace_back(tempvector);
   }
 
+  //更新ループ
   for(std::size_t learningStep = 0; learningStep < totalLearningStep; ++learningStep){
     RBMptrs.at(0)->timeEvolution();
+
+    std::size_t miniBatchNum = randMiniBatchNum(mt);
+    dataVHmeans = RBM<BBRBMTypeTraits>::batchDataMeanCalculateVH(teacher.at(miniBatchNum));
+    dataHmeans = RBM<BBRBMTypeTraits>::batchDataMeanCalculateH(teacher.at(miniBatchNum));
+    
     rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
     rbmVsums = RBMptrs.at(0)->getPotential().at(0);
     rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
@@ -149,10 +149,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
 
-    std::size_t miniBatchNum = randMiniBatchNum(mt);
-    matrix<double> diffByWLogLikelyMatrix = dataVHmeans.at(miniBatchNum) - rbmVHmeans;
+    matrix<double> diffByWLogLikelyMatrix = dataVHmeans - rbmVHmeans;
     vector<double> diffByALogLikelyVector = dataVmeans.at(miniBatchNum) - rbmVmeans;
-    vector<double> diffByBLogLikelyVector = dataHmeans.at(miniBatchNum) - rbmHmeans;
+    vector<double> diffByBLogLikelyVector = dataHmeans - rbmHmeans;
     vector<double> tempsum;
     if(learningStep % 10 == 0){
       //std::cout << "diffByWLogLikelyMatrix" << std::endl << diffByWLogLikelyMatrix << std::endl;
@@ -178,7 +177,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     
     if(learningStep % dumpstep == 0){
       ftest << "dataVmeans" << std::endl << dataVmeans.at(miniBatchNum) << std::endl;
-      ftest << "dataHmeans" << std::endl << dataHmeans.at(miniBatchNum) << std::endl;
+      ftest << "dataHmeans" << std::endl << dataHmeans << std::endl;
       ftest << "rbmVmeans" << std::endl << rbmVmeans << std::endl;
       ftest << "rbmHmeans" << std::endl << rbmHmeans << std::endl;
     }
@@ -213,8 +212,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   fConnection.close();
 
   RBM<BBRBMTypeTraits> motherRBM(initialValue);
-  std::size_t outputculum =
-    static_cast<std::size_t>(std::sqrt(RBM<BBRBMTypeTraits>::totalNodeNum));
+  std::size_t outputculum = static_cast<std::size_t>(std::sqrt(RBM<BBRBMTypeTraits>::totalNodeNum));
   std::size_t outputraw = outputculum;
   assert(RBM<BBRBMTypeTraits>::totalNodeNum == outputculum * outputraw);
   vector<double> meanPotential(RBM<BBRBMTypeTraits>::totalNodeNum,0);
