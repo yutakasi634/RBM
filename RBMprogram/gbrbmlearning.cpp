@@ -1,11 +1,13 @@
 #include "getDataVector.hpp"
-#include "RBM.hpp"
+#include "GBRBM.hpp"
 #include "defaultTraits.hpp"
 #include "vectorWrapper.hpp"
 #include <memory>
 #include <fstream>
 #include <string>
 #include <numeric>
+
+using RBMTypeTraits = GBRBMTypeTraits;
 
 int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるようにする
   if(argc < 4){
@@ -49,8 +51,8 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   std::cout << inputFileName << std::endl;
   
   //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
-  matrix<BBRBMTypeTraits::potentialType>
-    sample = getDataVector<BBRBMTypeTraits::potentialType>(inputFileName);
+  matrix<RBMTypeTraits::potentialType>
+    sample = getDataVector<RBMTypeTraits::potentialType>(inputFileName);
   
   ftest << "sample" << std::endl << sample << std::endl;
   std::cout << "get data from input.csv compleated." << std::endl;
@@ -61,9 +63,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   std::uniform_int_distribution<int> randbool(0,1);
 
   //教師データ集合を用意する
-  tensor<BBRBMTypeTraits::potentialType> teacher;
+  tensor<RBMTypeTraits::potentialType> teacher;
   teacher.reserve(totalBatchNum);
-  matrix<BBRBMTypeTraits::potentialType> miniBatch(miniBatchSampleNum);
+  matrix<RBMTypeTraits::potentialType> miniBatch(miniBatchSampleNum);
   for(std::size_t j = 0; j < totalBatchNum; ++j){
     for(std::size_t i = 0; i < miniBatchSampleNum; ++i){
       miniBatch.at(i) = sample.at(randSampleKind(mt));
@@ -76,38 +78,37 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   std::cout << "setup teacher-data compleated." << std::endl;
 
   //ミニバッチごとの可視層のpotentialの平均値を計算し、保持しておく
-  RBM<BBRBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
-  ftest << "Connection Matrix" << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
-  ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
+  RBM<RBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
+  ftest << "Connection Matrix" << std::endl << RBM<RBMTypeTraits>::connectionMatrix; 
+  ftest << "Bias Matrix" << std::endl << RBM<RBMTypeTraits>::bias;
   matrix<double> dataVmeans(totalBatchNum);
   for(std::size_t batchNum = 0; batchNum < totalBatchNum; ++batchNum){
-    dataVmeans.at(batchNum) = RBM<BBRBMTypeTraits>::batchDataMeanCalculateV(teacher.at(batchNum));
+    dataVmeans.at(batchNum) = RBM<RBMTypeTraits>::batchDataMeanCalculateV(teacher.at(batchNum));
   }
 
   std::cout << "calculate dataMeans compleated." << std::endl;
 
   //ミニバッチのサンプル数だけRBMを用意する
-  vector<std::shared_ptr<RBM<BBRBMTypeTraits>>> RBMptrs;
+  vector<std::shared_ptr<RBM<RBMTypeTraits>>> RBMptrs;
   for(std::size_t i = 0; i < miniBatchSampleNum; ++i){
-    std::shared_ptr<RBM<BBRBMTypeTraits>> RBMptr(new RBM<BBRBMTypeTraits>(teacher.at(randMiniBatchNum(mt)).at(i)));
+    std::shared_ptr<RBM<RBMTypeTraits>> RBMptr(new RBM<RBMTypeTraits>(teacher.at(randMiniBatchNum(mt)).at(i)));
     RBMptrs.emplace_back(RBMptr);
   }
   std::cout << "setup RBMs compleated." << std::endl;
 
 
   //connectionMatrixを更新して学習する
-  matrix<BBRBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
-  matrix<BBRBMTypeTraits::biasType> deltaBias,oldDeltaBias;
+  matrix<RBMTypeTraits::connectionType> deltaConnection,oldDeltaConnection;
+  matrix<RBMTypeTraits::biasType> deltaBias,oldDeltaBias;
   matrix<double> dataVHmeans,rbmVHmeans;
-  vector<int> rbmVsums;
-  vector<double> dataHmeans,rbmHmeans;
+  vector<double> dataHmeans,rbmVmeans,rbmHmeans;
   deltaBias.resize(2);
-  for(std::size_t i = 0; i < RBM<BBRBMTypeTraits>::totalNodeNum; ++i){
-    vector<BBRBMTypeTraits::connectionType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
+  for(std::size_t i = 0; i < RBM<RBMTypeTraits>::totalNodeNum; ++i){
+    vector<RBMTypeTraits::connectionType> tempvector(RBM<RBMTypeTraits>::totalNodeNum,0);
     oldDeltaConnection.emplace_back(tempvector);
   }
   for(std::size_t i = 0; i < 2; ++i){
-    vector<BBRBMTypeTraits::biasType> tempvector(RBM<BBRBMTypeTraits>::totalNodeNum,0);
+    vector<RBMTypeTraits::biasType> tempvector(RBM<RBMTypeTraits>::totalNodeNum,0);
     oldDeltaBias.emplace_back(tempvector);
   }
 
@@ -116,35 +117,34 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     RBMptrs.at(0)->timeEvolution();
 
     std::size_t miniBatchNum = randMiniBatchNum(mt);
-    dataVHmeans = RBM<BBRBMTypeTraits>::batchDataMeanCalculateVH(teacher.at(miniBatchNum));
-    dataHmeans = RBM<BBRBMTypeTraits>::batchDataMeanCalculateH(teacher.at(miniBatchNum));
+    dataVHmeans = RBM<RBMTypeTraits>::batchDataMeanCalculateVH(teacher.at(miniBatchNum));
+    dataHmeans = RBM<RBMTypeTraits>::batchDataMeanCalculateH(teacher.at(miniBatchNum));
     
-    rbmVHmeans = RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
-    rbmVsums = RBMptrs.at(0)->getPotential().at(0);
-    rbmHmeans = RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
+    rbmVHmeans = RBM<RBMTypeTraits>::calculateVH((RBMptrs.at(0)->getPotential()).at(0));
+    rbmVmeans = RBMptrs.at(0)->getPotential().at(0);
+    rbmHmeans = RBM<RBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
 
     if(learningStep % dumpstep == 0){
       /*ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
 	ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
-	<< RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
+	<< RBM<RBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
 	<< std::endl;*/
-      ftest << "Connection Matrix " << std::endl << RBM<BBRBMTypeTraits>::connectionMatrix; 
-      ftest << "Bias Matrix" << std::endl << RBM<BBRBMTypeTraits>::bias;
+      ftest << "Connection Matrix " << std::endl << RBM<RBMTypeTraits>::connectionMatrix; 
+      ftest << "Bias Matrix" << std::endl << RBM<RBMTypeTraits>::bias;
     }
     
     for(std::size_t rbmNum = 1; rbmNum < miniBatchSampleNum; ++rbmNum){
       RBMptrs.at(rbmNum)->timeEvolution();
       rbmVHmeans =
 	rbmVHmeans +
-	RBM<BBRBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
-      rbmVsums =
-	rbmVsums + RBMptrs.at(rbmNum)->getPotential().at(0);
+	RBM<RBMTypeTraits>::calculateVH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+      rbmVmeans =
+	rbmVmeans + RBMptrs.at(rbmNum)->getPotential().at(0);
       rbmHmeans =
 	rbmHmeans +
-	RBM<BBRBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
+	RBM<RBMTypeTraits>::calculateH((RBMptrs.at(rbmNum)->getPotential()).at(0));
     }
 
-    vector<double> rbmVmeans(rbmVsums.begin(),rbmVsums.end());
     rbmVHmeans = rbmVHmeans / (double)miniBatchSampleNum;
     rbmVmeans = rbmVmeans / (double)miniBatchSampleNum;
     rbmHmeans = rbmHmeans / (double)miniBatchSampleNum;
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     deltaBias.at(0) = epsilon*(diffByALogLikelyVector);
     deltaBias.at(1) = epsilon*(diffByBLogLikelyVector);
 
-    deltaConnection = deltaConnection - lambda * RBM<BBRBMTypeTraits>::connectionMatrix;
+    deltaConnection = deltaConnection - lambda * RBM<RBMTypeTraits>::connectionMatrix;
     deltaConnection = deltaConnection + myu * oldDeltaConnection;
     deltaBias = deltaBias + myu * oldDeltaBias;
     
@@ -189,9 +189,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
         
     //    std::cout << deltaConnection.at(1);
     
-    RBM<BBRBMTypeTraits>::setConnectionMatrix(RBM<BBRBMTypeTraits>::connectionMatrix +
+    RBM<RBMTypeTraits>::setConnectionMatrix(RBM<RBMTypeTraits>::connectionMatrix +
 					      deltaConnection);
-    RBM<BBRBMTypeTraits>::setBias(RBM<BBRBMTypeTraits>::bias + deltaBias);
+    RBM<RBMTypeTraits>::setBias(RBM<RBMTypeTraits>::bias + deltaBias);
 
     oldDeltaConnection = deltaConnection;
     oldDeltaBias = deltaBias;
@@ -202,24 +202,24 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   std::cout << "learning compleated." << std::endl;
 
   //学習結果のデータ群を出力する
-  vector<int> initialValue(RBM<BBRBMTypeTraits>::totalNodeNum);
+  vector<RBMTypeTraits::potentialType> initialValue(RBM<RBMTypeTraits>::totalNodeNum);
   for(auto itr = initialValue.begin(); itr != initialValue.end(); ++itr){
     *itr = randbool(mt);
   }
 
 
-  fConnection << RBM<BBRBMTypeTraits>::connectionMatrix;
+  fConnection << RBM<RBMTypeTraits>::connectionMatrix;
   fConnection.close();
 
-  RBM<BBRBMTypeTraits> motherRBM(initialValue);
-  std::size_t outputculum = static_cast<std::size_t>(std::sqrt(RBM<BBRBMTypeTraits>::totalNodeNum));
+  RBM<RBMTypeTraits> motherRBM(initialValue);
+  std::size_t outputculum = static_cast<std::size_t>(std::sqrt(RBM<RBMTypeTraits>::totalNodeNum));
   std::size_t outputraw = outputculum;
-  assert(RBM<BBRBMTypeTraits>::totalNodeNum == outputculum * outputraw);
-  vector<double> meanPotential(RBM<BBRBMTypeTraits>::totalNodeNum,0);
+  assert(RBM<RBMTypeTraits>::totalNodeNum == outputculum * outputraw);
+  vector<double> meanPotential(RBM<RBMTypeTraits>::totalNodeNum,0);
   for(std::size_t i = 0; i < totalOutputStep; ++i){
     motherRBM.timeEvolution();
     if((i % (totalOutputStep / outputPotentialNum)) == 0){
-      vector<BBRBMTypeTraits::potentialType> outputPotential = motherRBM.getPotential().at(0);
+      vector<RBMTypeTraits::potentialType> outputPotential = motherRBM.getPotential().at(0);
       auto itr = outputPotential.begin();
       for(std::size_t j = 0; j < outputraw; ++j){
 	for(std::size_t k = 0; k < outputculum; ++k){

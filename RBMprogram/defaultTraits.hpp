@@ -7,4 +7,9 @@ struct BBRBMTypeTraits{
   using biasType = double;
 };
 
+struct GBRBMTypeTraits{
+  using potentialType = double;
+  using connectionType = double;
+  using biasType = double;
+};
 #endif

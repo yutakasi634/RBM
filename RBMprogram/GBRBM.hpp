@@ -15,6 +15,8 @@ class RBM{
   typedef typename T_traits::biasType biasType;
 protected:
   matrix<potentialType> potential;
+  std::normal_distribution<> dist;
+  std::uniform_real_distribution<double> rand;
 public:
   static std::size_t totalNodeNum;
   static matrix<connectionType> connectionMatrix;
@@ -31,12 +33,12 @@ public:
   static void setConnectionMatrix(const matrix<connectionType>& weightMatrix){connectionMatrix = weightMatrix;};
   
   double
-  activationFunction(std::size_t layerNum, std::size_t nodeNum);
+  calculateInput(std::size_t layerNum, std::size_t nodeNum);
   
   static
   double
-  activationFunction(std::size_t layerNum, std::size_t nodeNum,
-		     const vector<potentialType>& nodePotentials);
+  calculateInput(std::size_t layerNum, std::size_t nodeNum,
+		 const vector<potentialType>& nodePotentials);
 
   potentialType activate(std::size_t layerNum, std::size_t nodeNum);
   
@@ -62,6 +64,10 @@ public:
 template<typename T_traits>
 RBM<T_traits>::RBM(vector<potentialType>& initialValues){
   assert(initialValues.size() == totalNodeNum);
+  std::uniform_real_distribution<>::param_type uniformDistParam(0.0, 1.0);
+  rand.param(uniformDistParam);
+  std::normal_distribution<>::param_type normalDistParam(0.0, 1.0);
+  dist.param(normalDistParam);
   potential.push_back(initialValues);
   vector<potentialType> hiddenLayer(totalNodeNum);
   potential.emplace_back(hiddenLayer);
@@ -74,28 +80,18 @@ RBM<T_traits>::getPotential(){
 }
 
 template<typename T_traits>
-double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum){
-  std::size_t inputLayerNum = (layerNum + 1)%2;
-  double sum = 0.0;
-  const auto& connectionNodes = connectionMatrix.at(nodeNum);
-  const auto& potentialNodes = potential.at(inputLayerNum);
-  if(layerNum == 0){//可視層の場合
-    for(std::size_t i = 0; i < totalNodeNum; ++i){
-      sum += connectionNodes.at(i) * potentialNodes.at(i);
-    }
-  }
-  else{//隠れ層の場合
-    for(std::size_t i = 0; i < totalNodeNum; ++i)
-      sum += connectionMatrix.at(i).at(nodeNum) * potentialNodes.at(i);
-  }
-  sum += bias.at(layerNum).at(nodeNum);
-  double possibility = 1.0/(1 + std::exp(-sum));
-  return possibility;
+double RBM<T_traits>::calculateInput(std::size_t layerNum, std::size_t nodeNum){
+  if(layerNum != 0 and layerNum != 1)
+    throw std::invalid_argument("You put invalid layerNum.");
+  double sum = calculateInput(layerNum, nodeNum,potential.at((layerNum + 1) % 2));
+  return sum;
 }
 
 template<typename T_traits>
-double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum,
-					 const vector<potentialType>& nodePotentials){
+double RBM<T_traits>::calculateInput(std::size_t layerNum, std::size_t nodeNum,
+				     const vector<potentialType>& nodePotentials){
+  if(layerNum != 0 and layerNum != 1)
+    throw std::invalid_argument("You put invalid layerNum.");
   double sum = 0.0;
   if(layerNum == 0){//可視層の場合
     const auto& connectionToHiddeni = connectionMatrix.at(nodeNum);
@@ -108,22 +104,24 @@ double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeN
     }
   }
   sum += bias.at(layerNum).at(nodeNum);
-  double possibility = 1.0/(1 + std::exp(-sum));
-  return possibility;
+  return sum;
 }
 
 template<typename T_traits>
 typename RBM<T_traits>::potentialType
 RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
-  std::uniform_real_distribution<double> rand(0.0,1.0);
-  double possibility = activationFunction(layerNum,nodeNum);
-  potentialType potential;
-  if(rand(randomNumberGenerator) <= possibility)
-    potential = 1;
-  else
-    potential = 0;
-
-  return potential;
+  potentialType newpotential;
+  if(layerNum == 0){
+    newpotential = dist(randomNumberGenerator) + calculateInput(layerNum,nodeNum);
+  }
+  else if(layerNum == 1){
+    double possibility = 1 / (1 + std::exp(-calculateInput(layerNum,nodeNum)));
+    if(rand(randomNumberGenerator) <= possibility)
+      newpotential = 1;
+    else
+      newpotential = 0;
+  }
+  return newpotential;
 }
 
 template<typename T_traits>
@@ -136,13 +134,13 @@ void RBM<T_traits>::timeEvolution(){
   }
 }
 
-template<typename T_traits>
+template<typename T_traits>//TODO calculateInputを使ったものに書き換える
 vector<double>
 RBM<T_traits>::calculateH(const vector<potentialType>& visibleLayer){
   vector<double> potentialH;
   potentialH.reserve(totalNodeNum);
   for(std::size_t nodeNum = 0; nodeNum < totalNodeNum; ++nodeNum)
-    potentialH.push_back(activationFunction(1,nodeNum,visibleLayer));
+    potentialH.push_back(1.0 / (1.0 + std::exp(calculateInput(1,nodeNum,visibleLayer))));
   return potentialH;
 }
 

@@ -19,9 +19,9 @@ if __name__ == "__main__":
             if count <= 100 and meanPotentioalflag == 0:
                 if row != [] and row != ['meanPotential']:
                     if row[-1] != '':
-                        arr.append([int(i) for i in row])
+                        arr.append([float(i) for i in row])
                     else:
-                        arr.append([int(i) for i in row[:-1]])
+                        arr.append([float(i) for i in row[:-1]])
 
                 elif row == ['meanPotential']:
                     meanPotentioalflag = 1
