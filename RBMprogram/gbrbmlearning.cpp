@@ -24,9 +24,9 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   
   const std::size_t dataNum = 1000;
   const std::size_t miniBatchSampleNum = 100;
-  double epsilon = 0.1;//更新の重み
-  double lambda = 0.01;//正規化の重み
-  double myu = 0.1;//モメンタムの重み
+  double epsilon = 0.0001;//更新の重み
+  double lambda = 0.0;//正規化の重み
+  double myu = 0.5;//モメンタムの重み
   const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;
   const std::size_t totalLearningStep = std::atoi(argv[2]);
   const std::size_t totalOutputStep = std::atoi(argv[3]);
@@ -34,9 +34,10 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   const std::string outputTeacherData = dirpass + "teacherData.dat";
   const std::string outputPotentialFileName = dirpass + "answer.dat";
   const std::string outputConnectionFileName = dirpass + "connection.dat";
+  const std::string outputBiasFileName = dirpass + "bias.dat";
   const std::string differentiationLogLikelihood = dirpass + "differentiation.dat";
-  const std::size_t dumpstep = totalLearningStep / 100;
-  const std::size_t outputPotentialNum = 100;
+  const std::size_t dumpstep = totalLearningStep > 100 ? totalLearningStep / 100 : 1;
+  const std::size_t outputPotentialstep = totalOutputStep > 100 ? totalOutputStep / 100 : 1;
 
   
   ftest << "dataNum " << dataNum << std::endl;
@@ -46,6 +47,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   
   std::ofstream fout(outputPotentialFileName);
   std::ofstream fConnection(outputConnectionFileName);
+  std::ofstream fBias(outputBiasFileName);
   std::ofstream fteacher(outputTeacherData);
   std::ofstream fdiffLogLikely(differentiationLogLikelihood);
   std::cout << inputFileName << std::endl;
@@ -78,9 +80,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   std::cout << "setup teacher-data compleated." << std::endl;
 
   //ミニバッチごとの可視層のpotentialの平均値を計算し、保持しておく
-  RBM<RBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),0);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
-  ftest << "Connection Matrix" << std::endl << RBM<RBMTypeTraits>::connectionMatrix; 
-  ftest << "Bias Matrix" << std::endl << RBM<RBMTypeTraits>::bias;
+  RBM<RBMTypeTraits>::RBMstaticGenerate(sample.at(0).size(),3);//RBMのメンバ関数を使う前に必要なstaticメンバ変数を初期化しておく
   matrix<double> dataVmeans(totalBatchNum);
   for(std::size_t batchNum = 0; batchNum < totalBatchNum; ++batchNum){
     dataVmeans.at(batchNum) = RBM<RBMTypeTraits>::batchDataMeanCalculateV(teacher.at(batchNum));
@@ -91,7 +91,8 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   //ミニバッチのサンプル数だけRBMを用意する
   vector<std::shared_ptr<RBM<RBMTypeTraits>>> RBMptrs;
   for(std::size_t i = 0; i < miniBatchSampleNum; ++i){
-    std::shared_ptr<RBM<RBMTypeTraits>> RBMptr(new RBM<RBMTypeTraits>(teacher.at(randMiniBatchNum(mt)).at(i)));
+    std::shared_ptr<RBM<RBMTypeTraits>>
+      RBMptr(new RBM<RBMTypeTraits>(teacher.at(randMiniBatchNum(mt)).at(i)));
     RBMptrs.emplace_back(RBMptr);
   }
   std::cout << "setup RBMs compleated." << std::endl;
@@ -104,7 +105,8 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   vector<double> dataHmeans,rbmVmeans,rbmHmeans;
   deltaBias.resize(2);
   for(std::size_t i = 0; i < RBM<RBMTypeTraits>::totalNodeNum; ++i){
-    vector<RBMTypeTraits::connectionType> tempvector(RBM<RBMTypeTraits>::totalNodeNum,0);
+    vector<RBMTypeTraits::connectionType>
+      tempvector(RBM<RBMTypeTraits>::totalNodeNum,0);
     oldDeltaConnection.emplace_back(tempvector);
   }
   for(std::size_t i = 0; i < 2; ++i){
@@ -125,10 +127,6 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     rbmHmeans = RBM<RBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0));
 
     if(learningStep % dumpstep == 0){
-      /*ftest << "potential" << std::endl << RBMptrs.at(0)->getPotential();
-	ftest << "calculateH(RBMptrs.at(0)->getPotential())" << std::endl
-	<< RBM<RBMTypeTraits>::calculateH((RBMptrs.at(0)->getPotential()).at(0))
-	<< std::endl;*/
       ftest << "Connection Matrix " << std::endl << RBM<RBMTypeTraits>::connectionMatrix; 
       ftest << "Bias Matrix" << std::endl << RBM<RBMTypeTraits>::bias;
     }
@@ -207,9 +205,10 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     *itr = randbool(mt);
   }
 
-
   fConnection << RBM<RBMTypeTraits>::connectionMatrix;
+  fBias << RBM<RBMTypeTraits>::bias;
   fConnection.close();
+  fBias.close();
 
   RBM<RBMTypeTraits> motherRBM(initialValue);
   std::size_t outputculum = static_cast<std::size_t>(std::sqrt(RBM<RBMTypeTraits>::totalNodeNum));
@@ -218,7 +217,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
   vector<double> meanPotential(RBM<RBMTypeTraits>::totalNodeNum,0);
   for(std::size_t i = 0; i < totalOutputStep; ++i){
     motherRBM.timeEvolution();
-    if((i % (totalOutputStep / outputPotentialNum)) == 0){
+    if((i % outputPotentialstep) == 0){
       vector<RBMTypeTraits::potentialType> outputPotential = motherRBM.getPotential().at(0);
       auto itr = outputPotential.begin();
       for(std::size_t j = 0; j < outputraw; ++j){

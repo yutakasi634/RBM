@@ -134,13 +134,13 @@ void RBM<T_traits>::timeEvolution(){
   }
 }
 
-template<typename T_traits>//TODO calculateInputを使ったものに書き換える
+template<typename T_traits>
 vector<double>
 RBM<T_traits>::calculateH(const vector<potentialType>& visibleLayer){
   vector<double> potentialH;
   potentialH.reserve(totalNodeNum);
   for(std::size_t nodeNum = 0; nodeNum < totalNodeNum; ++nodeNum)
-    potentialH.push_back(1.0 / (1.0 + std::exp(calculateInput(1,nodeNum,visibleLayer))));
+    potentialH.push_back(1.0 / (1.0 + std::exp(-calculateInput(1,nodeNum,visibleLayer))));
   return potentialH;
 }
 
@@ -197,13 +197,13 @@ void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){
   totalNodeNum = nodeNum;
   int totalLayerNum = 2;
   randomNumberGenerator.seed(randomSeed);
-  std::uniform_real_distribution<double> rand(0.0,1.0);
+  std::normal_distribution<> dist(0.0,0.1);
   bias.reserve(totalLayerNum);
   for(std::size_t i = 0; i < totalLayerNum; ++i){
     vector<biasType> tempBias;
     tempBias.reserve(totalNodeNum);
     for(std::size_t j = 0; j < totalNodeNum; ++j){
-      tempBias.emplace_back(rand(randomNumberGenerator));
+      tempBias.emplace_back(0);
     }
     bias.emplace_back(tempBias);
   }
@@ -212,7 +212,7 @@ void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){
     vector<connectionType> tempConn;
     tempConn.reserve(totalNodeNum);
     for(std::size_t j = 0; j < totalNodeNum; ++j){
-      tempConn.emplace_back(rand(randomNumberGenerator));
+      tempConn.emplace_back(dist(randomNumberGenerator));
     }  
     connectionMatrix.emplace_back(tempConn);
   }
