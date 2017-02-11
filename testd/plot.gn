@@ -1,0 +1,6 @@
+unset key
+set pm3d map
+set cbrange [0:1]
+set xrange [0:3]
+splot 'fig.dat' matrix using 1:2:3
+pause -1
