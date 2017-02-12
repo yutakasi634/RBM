@@ -15,6 +15,8 @@ class RBM{
   typedef typename T_traits::biasType biasType;
 protected:
   matrix<potentialType> potential;
+  std::normal_distribution<> dist;
+  std::uniform_real_distribution<double> rand;
 public:
   static std::size_t totalNodeNum;
   static matrix<connectionType> connectionMatrix;
@@ -62,6 +64,10 @@ public:
 template<typename T_traits>
 RBM<T_traits>::RBM(vector<potentialType>& initialValues){
   assert(initialValues.size() == totalNodeNum);
+  std::uniform_real_distribution<>::param_type uniformDistParam(0.0, 1.0);
+  rand.param(uniformDistParam);
+  std::normal_distribution<>::param_type normalDistParam(0.0, 1.0);
+  dist.param(normalDistParam);
   potential.push_back(initialValues);
   vector<potentialType> hiddenLayer(totalNodeNum);
   potential.emplace_back(hiddenLayer);
@@ -75,21 +81,8 @@ RBM<T_traits>::getPotential(){
 
 template<typename T_traits>
 double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum){
-  std::size_t inputLayerNum = (layerNum + 1)%2;
-  double sum = 0.0;
-  const auto& connectionNodes = connectionMatrix.at(nodeNum);
-  const auto& potentialNodes = potential.at(inputLayerNum);
-  if(layerNum == 0){//可視層の場合
-    for(std::size_t i = 0; i < totalNodeNum; ++i){
-      sum += connectionNodes.at(i) * potentialNodes.at(i);
-    }
-  }
-  else{//隠れ層の場合
-    for(std::size_t i = 0; i < totalNodeNum; ++i)
-      sum += connectionMatrix.at(i).at(nodeNum) * potentialNodes.at(i);
-  }
-  sum += bias.at(layerNum).at(nodeNum);
-  double possibility = 1.0/(1 + std::exp(-sum));
+  std::size_t inputLayerNum = (layerNum + 1) % 2;
+  double possibility = activationFunction(layerNum,nodeNum,potential.at(inputLayerNum));
   return possibility;
 }
 
@@ -103,8 +96,10 @@ double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeN
       sum += connectionToHiddeni.at(i) * nodePotentials.at(i);
   }
   else{//隠れ層の場合
+    //std::cout << "hidden layer" << std::endl;
     for(std::size_t i = 0; i < totalNodeNum; ++i){
       sum += connectionMatrix.at(i).at(nodeNum) * nodePotentials.at(i);
+      //std::cout << "sum" << std::endl;
     }
   }
   sum += bias.at(layerNum).at(nodeNum);
@@ -115,7 +110,6 @@ double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeN
 template<typename T_traits>
 typename RBM<T_traits>::potentialType
 RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
-  std::uniform_real_distribution<double> rand(0.0,1.0);
   double possibility = activationFunction(layerNum,nodeNum);
   potentialType potential;
   if(rand(randomNumberGenerator) <= possibility)
@@ -128,9 +122,15 @@ RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){
 
 template<typename T_traits>
 void RBM<T_traits>::timeEvolution(){
+  //std::cout << "timeEvolution" << std::endl;
   for(int layerNum = 1; layerNum >= 0; --layerNum){
+    //std::cout << "potentials " << std::endl << potential;
     auto& oneLayerPotential = potential.at(layerNum);
+    //std::cout << "oneLayerPotential " << std::endl << oneLayerPotential;
     for(std::size_t i = 0; i < totalNodeNum; ++i){
+      //std::cout << "i " << i << std::endl;
+      //std::cout << "oneLayerPotential.at(i) " << oneLayerPotential.at(i) << std::endl;
+      //std::cout << "activate(layerNum,i) " << activate(layerNum,i) << std::endl;
       oneLayerPotential.at(i) = activate(layerNum,i);
     }
   }
@@ -199,13 +199,13 @@ void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){
   totalNodeNum = nodeNum;
   int totalLayerNum = 2;
   randomNumberGenerator.seed(randomSeed);
-  std::uniform_real_distribution<double> rand(0.0,1.0);
+  std::normal_distribution<> dist(0.0, 0.1);
   bias.reserve(totalLayerNum);
   for(std::size_t i = 0; i < totalLayerNum; ++i){
     vector<biasType> tempBias;
     tempBias.reserve(totalNodeNum);
     for(std::size_t j = 0; j < totalNodeNum; ++j){
-      tempBias.emplace_back(rand(randomNumberGenerator));
+      tempBias.emplace_back(0);
     }
     bias.emplace_back(tempBias);
   }
@@ -214,7 +214,7 @@ void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){
     vector<connectionType> tempConn;
     tempConn.reserve(totalNodeNum);
     for(std::size_t j = 0; j < totalNodeNum; ++j){
-      tempConn.emplace_back(rand(randomNumberGenerator));
+      tempConn.emplace_back(dist(randomNumberGenerator));
     }  
     connectionMatrix.emplace_back(tempConn);
   }
