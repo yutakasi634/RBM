@@ -1,5 +1,9 @@
 *~
 #*#
 a.out
-data.csv
-build/
+*.png
+*.dat
+/build/*
+!/build/CMakeFiles
+/*sampletest*/*
+!/*sampletest*/input.csv
