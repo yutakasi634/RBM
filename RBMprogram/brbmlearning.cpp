@@ -1,3 +1,4 @@
+/* 第1引数:input.csvがあるディレクトリ,第2引数:学習ステップ数, 第3引数:出力ステップ数 */
 #include "getDataVector.hpp"
 #include "RBM.hpp"
 #include "defaultTraits.hpp"

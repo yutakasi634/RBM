@@ -3,7 +3,6 @@
 a.out
 *.png
 *.dat
-/build/*
-!/build/CMakeFiles
+/build/
 /*sampletest*/*
 !/*sampletest*/input.csv
