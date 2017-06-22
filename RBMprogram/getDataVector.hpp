@@ -32,6 +32,7 @@ std::vector<std::vector<potentialType>> getDataVector(std::string filename){
     reading_file.peek();
   }
   reading_file.close();
+  std::cout << "get data from" << filename  << "compleated." << std::endl;
   return data;
 }
 
