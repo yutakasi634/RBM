@@ -6,3 +6,4 @@ a.out
 /build/
 /*sampletest*/*
 !/*sampletest*/input.csv
+!/*sampletest*/input.dat
