@@ -11,7 +11,7 @@ python3 plot/plotmatrix.py $1input.dat &
 python3 plot/plotconnection.py $1connection.dat &
 python3 plot/plot.py $1differentiation.dat &
 wait
-display $1input.png &
-display $1connection.png &
-display $1differentiation.png &
-display $1answer.png &
+# display $1input.png &
+# display $1connection.png &
+# display $1differentiation.png &
+# display $1answer.png &

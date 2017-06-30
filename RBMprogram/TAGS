@@ -1,0 +1,82 @@
+
+brbmlearning.cpp,103
+int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるようにするmain12,330
+
+defaultTraits.hpp,88
+#define DEFAULT_TRAITSDEFAULT_TRAITS2,23
+struct BBRBMTypeTraits{BBRBMTypeTraits4,47
+
+getDataVector.hpp,139
+#define GETDATAVECTORGETDATAVECTOR2,22
+std::vector<std::vector<potentialType>> getDataVector(std::string filename){getDataVector10,172
+
+learnerParam.hpp,455
+#define LEARNER_PARAMLEARNER_PARAM2,22
+const std::size_t dataNum = 1000;dataNum4,45
+const std::size_t miniBatchSampleNum = 100;miniBatchSampleNum5,79
+double epsilon = 0.1;epsilon6,123
+double lambda = 0.01;//正規化の重みlambda7,145
+double myu = 0.1;//モメンタムの重みmyu8,187
+const std::size_t totalBatchNum = dataNum / miniBatchSampleNum;totalBatchNum9,231
+const std::size_t outputPotentialNum = 100;outputPotentialNum10,295
+
+RBM.hpp,2327
+#define SOTUKENRBMSOTUKENRBM3,103
+class RBM{RBM12,273
+    typedef typename T_traits::potentialType potentialType;potentialType14,285
+    typedef typename T_traits::connectionType connectionType;connectionType15,345
+    typedef typename T_traits::biasType biasType;biasType16,407
+    matrix<potentialType> potential;potential19,471
+    std::normal_distribution<> dist;dist20,508
+    std::uniform_real_distribution<double> rand;rand21,545
+    static std::size_t totalNodeNum;totalNodeNum25,610
+    static matrix<connectionType> connectionMatrix;connectionMatrix26,647
+    static matrix<biasType> bias;bias28,801
+    static std::mt19937 randomNumberGenerator;randomNumberGenerator29,835
+    void setVisiblePotentials(setVisiblePotentials37,1078
+    static void setBias(const matrix<biasType>& values){bias = values;};setBias39,1175
+    static void setConnectionMatrix(setConnectionMatrix40,1248
+RBM<T_traits>::RBM(vector<potentialType>& initialValues){RBM75,2186
+RBM<T_traits>::getPotential(){getPotential88,2725
+double RBM<T_traits>::activationFunction(std::size_t layerNum, std::size_t nodeNum)activationFunction93,2809
+double RBM<T_traits>::activationFunction(activationFunction101,3093
+RBM<T_traits>::activate(std::size_t layerNum, std::size_t nodeNum){activate123,3822
+void RBM<T_traits>::timeEvolution(){timeEvolution135,4128
+RBM<T_traits>::calculateH(const vector<potentialType>& visibleLayer){calculateH146,4426
+RBM<T_traits>::calculateVH(const vector<potentialType>& visibleLayer){calculateVH156,4769
+RBM<T_traits>::batchDataMeanCalculateVH(const matrix<potentialType>& miniBatch){batchDataMeanCalculateVH171,5244
+RBM<T_traits>::batchDataMeanCalculateV(const matrix<potentialType>& miniBatch){batchDataMeanCalculateV186,5827
+RBM<T_traits>::batchDataMeanCalculateH(const matrix<potentialType>& miniBatch){batchDataMeanCalculateH197,6212
+void RBM<T_traits>::RBMstaticGenerate(int nodeNum, int randomSeed){RBMstaticGenerate206,6615
+std::size_t RBM<T_traits>::totalNodeNum = 0;totalNodeNum239,7595
+vector<vector<typename T_traits::connectionType> > RBM<T_traits>::connectionMatrix;connectionMatrix242,7669
+vector<vector<typename T_traits::biasType>> RBM<T_traits>::bias;bias245,7782
+std::mt19937 RBM<T_traits>::randomNumberGenerator;randomNumberGenerator248,7876
+
+timeEvolutionTest.cpp,46
+int main(int argc, char *argv[]){main10,183
+
+translateToOneliner.py,381
+import csvcsv3,25
+import syssys4,36
+args = sys.argvargs6,48
+fout = open(args[1][0:args[1].find('.')] + '.csv', 'w')fout11,135
+csvWriter = csv.writer(fout)csvWriter12,191
+char_list = []char_list14,221
+        char_list = []char_list21,372
+        line = line.replace('\n','')line23,405
+        line = line.replace(',','')line24,442
+char_list = []char_list28,546
+
+vectorWrapper.hpp,824
+#define OPERATORFORVECTOROPERATORFORVECTOR2,26
+operator+(const vector<T1>& self,const vector<T2>& other){operator +78,2539
+operator-(const vector<T1>& self,const vector<T2>& other){operator -98,3182
+operator*(const vector<T1>& self,const vector<T2>& other){operator *120,3857
+operator*(const vector<T1>& self,const T2& other){operator *141,4582
+operator*(const T1& self,const vector<T2>& other){operator *157,5113
+operator/(const vector<T1>& self,const vector<T2>& other){operator /164,5300
+operator/(const vector<T1>& self,const T2& other){ operator /185,6028
+operator/(const T1& self,const vector<T2>& other){operator /201,6561
+std::ostream& operator<<(std::ostream& os, const vector<T>& self){operator <<216,7032
+std::ostream& operator<<(std::ostream& os, const vector<T>& self){operator <<228,7332

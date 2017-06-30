@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){//TODO inputデータの名前を渡せるよ�
     std::ofstream fteacher(outputTeacherData);
     std::ofstream fdiffLogLikely(differentiationLogLikelihood);
 
-    //☓◯△□ ■●▲の順に１００次元ベクターに読み込む
+    //inputを読み込んでいる
     matrix<potentialType>
 	sample = getDataVector<potentialType>(inputFileName);
   
